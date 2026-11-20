@@ -149,6 +149,12 @@ function logout(){
  location.reload();
 }
 if(token)openHome();
+ if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .catch(error => console.log("Service Worker Error:", error));
+  });
+}
 </script>
 </body>
     
