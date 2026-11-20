@@ -22,7 +22,7 @@ input,textarea{width:100%;padding:13px;margin:7px 0;border:1px solid #d5e7e5;bor
 textarea{resize:vertical;min-height:75px}
 button{border:0;background:#12b8b0;color:white;padding:12px 18px;border-radius:10px;font-size:15px;font-weight:bold;cursor:pointer}
 button.secondary{background:#e5f7f5;color:#118f89}
-button:disabled{opacity:.6}
+button:disabled{opacity:.6;cursor:not-allowed}
 .tabs{display:flex;gap:8px;margin:15px 0}
 .tabs button{flex:1}
 .nav{display:flex;gap:7px;overflow-x:auto;margin:12px 0;padding:3px 0}
@@ -35,7 +35,7 @@ button:disabled{opacity:.6}
 .hidden{display:none!important}
 #message,.status{font-size:14px}
 #message{color:#d34b4b}
-.actions{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0;align-items:center}
 .actions button{padding:9px 13px}
 .comment{background:#f3fbfa;border-radius:10px;padding:9px;margin:7px 0;font-size:14px}
 .comment-form{display:flex;gap:7px;align-items:center;margin-top:10px}
@@ -49,6 +49,34 @@ button:disabled{opacity:.6}
 .empty{padding:20px;text-align:center;color:#78918f}
 footer{text-align:center;color:#78918f;padding:25px;font-size:13px}
 hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
+
+/* BEST: 12 रंग लगातार बदलते रहेंगे */
+.best-wrap{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:45px}
+.best-circle{
+ width:23px;height:23px;border-radius:50%;
+ background:#ff1744;
+ animation:bestColors 12s linear infinite;
+ box-shadow:0 0 9px currentColor;
+}
+.best-label{font-size:10px;font-weight:bold;letter-spacing:.4px;color:#536967}
+.best-button{background:transparent!important;color:inherit!important;padding:3px 7px!important;display:inline-flex;align-items:center;gap:5px}
+.best-button:disabled{opacity:.65}
+.best-count{font-size:13px;color:#78918f}
+@keyframes bestColors{
+ 0%{background:#ff1744;box-shadow:0 0 9px #ff1744}
+ 8.33%{background:#ff9100;box-shadow:0 0 9px #ff9100}
+ 16.66%{background:#ffea00;box-shadow:0 0 9px #ffea00}
+ 25%{background:#76ff03;box-shadow:0 0 9px #76ff03}
+ 33.33%{background:#00e676;box-shadow:0 0 9px #00e676}
+ 41.66%{background:#00e5ff;box-shadow:0 0 9px #00e5ff}
+ 50%{background:#2979ff;box-shadow:0 0 9px #2979ff}
+ 58.33%{background:#651fff;box-shadow:0 0 9px #651fff}
+ 66.66%{background:#d500f9;box-shadow:0 0 9px #d500f9}
+ 75%{background:#f50057;box-shadow:0 0 9px #f50057}
+ 83.33%{background:#ff6d00;box-shadow:0 0 9px #ff6d00}
+ 91.66%{background:#00bfa5;box-shadow:0 0 9px #00bfa5}
+ 100%{background:#ff1744;box-shadow:0 0 9px #ff1744}
+}
 
 /* Reels swipe design */
 #reelsFeed{
@@ -97,6 +125,8 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
 .reel-overlay .post-text{color:white}
 .reel-overlay .actions{align-items:center}
 .reel-overlay .actions button{background:#12b8b0;color:white}
+.reel-overlay .actions .best-button{background:transparent!important}
+.reel-overlay .best-label{color:white}
 .reel-overlay .muted{color:#eee}
 .reel-overlay .comment{background:#ffffff20;color:white}
 .reel-overlay .comment-form input{background:white}
@@ -143,6 +173,7 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
    <button class="active" onclick="showSection('homeSection',this)">🏠 Home</button>
    <button class="secondary" onclick="showSection('videoSection',this)">🎬 Video</button>
    <button class="secondary" onclick="showSection('reelsSection',this)">▶ Reels</button>
+   <button class="secondary" onclick="showSection('storeSection',this)">📦 My Store</button>
    <button class="secondary" onclick="showSection('profileSection',this)">👤 Profile</button>
   </div>
 
@@ -190,6 +221,15 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
    <div id="reelsFeed"></div>
   </div>
 
+  <div id="storeSection" class="hidden">
+   <div class="card">
+    <h2>📦 My Store</h2>
+    <p class="muted">आपकी सेव की हुई पोस्ट, फोटो और वीडियो केवल आपको दिखाई देंगे।</p>
+    <button class="secondary" onclick="loadMyStore()">↻ Refresh Store</button>
+    <div id="storeFeed"><p class="muted">Store लोड करने के लिए Refresh दबाएँ।</p></div>
+   </div>
+  </div>
+
   <div id="profileSection" class="hidden">
    <div class="card">
     <h2>My Profile 👤</h2>
@@ -232,6 +272,7 @@ let token = localStorage.getItem("modd_token") || "";
 let currentUser = null;
 let allPosts = [];
 let reelsObserver = null;
+let storePosts = [];
 
 try {
  currentUser = JSON.parse(localStorage.getItem("modd_user") || "null");
@@ -243,6 +284,42 @@ function safe(value) {
  return String(value ?? "").replace(/[&<>"']/g, c => ({
   "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
  }[c]));
+}
+
+function getMyId() {
+ return currentUser?._id || currentUser?.id || currentUser?.userId || "";
+}
+
+function getPostId(p) {
+ return p?._id || p?.id || "";
+}
+
+function getBestCount(p) {
+ return Array.isArray(p.bests) ? p.bests.length : 0;
+}
+
+function hasBested(p) {
+ const myId = getMyId();
+ if(!myId || !Array.isArray(p.bests)) return false;
+ return p.bests.some(item =>
+  String(item?._id || item) === String(myId)
+ );
+}
+
+function bestCooldownActive() {
+ if(!currentUser?.lastBestAt) return false;
+ const last = new Date(currentUser.lastBestAt).getTime();
+ if(!Number.isFinite(last)) return false;
+ return Date.now() < last + 72 * 60 * 60 * 1000;
+}
+
+function bestTimeRemaining() {
+ if(!currentUser?.lastBestAt) return "";
+ const next = new Date(currentUser.lastBestAt).getTime() + 72 * 60 * 60 * 1000;
+ const remaining = Math.max(0,next-Date.now());
+ const hours = Math.floor(remaining/3600000);
+ const minutes = Math.floor((remaining%3600000)/60000);
+ return hours + " घंटे " + minutes + " मिनट";
 }
 
 function showLogin() {
@@ -363,7 +440,7 @@ function startReelsObserver() {
 function showSection(sectionId,button) {
  stopReelsObserver();
 
- ["homeSection","videoSection","reelsSection","profileSection"].forEach(id => {
+ ["homeSection","videoSection","reelsSection","storeSection","profileSection"].forEach(id => {
   document.getElementById(id).classList.toggle("hidden",id !== sectionId);
  });
 
@@ -376,6 +453,7 @@ function showSection(sectionId,button) {
   startReelsObserver();
  }
  if(sectionId === "videoSection") renderVideos();
+ if(sectionId === "storeSection") loadMyStore();
 }
 
 async function loadCurrentUser() {
@@ -616,11 +694,43 @@ function isVideoPost(p) {
  return postMedia(p).some(m => m.type === "video" && m.url);
 }
 
-function renderPost(p,vertical=false) {
+function renderBestButton(p) {
+ const count = getBestCount(p);
+ const already = hasBested(p);
+ const cooling = bestCooldownActive();
+ const disabled = already || cooling;
+
+ let label = "BEST दें";
+ if(already) label = "BEST दिया";
+ else if(cooling) label = "72 घंटे की सीमा";
+
+ return `
+  <button class="best-button" ${disabled ? "disabled" : ""}
+   onclick="giveBest('${safe(getPostId(p))}',this)"
+   title="${safe(label)}">
+   <span class="best-wrap">
+    <span class="best-circle"></span>
+    <span class="best-label">best</span>
+   </span>
+   <span class="best-count">${count}</span>
+  </button>
+ `;
+}
+
+function renderStoreButton(p) {
+ const id = getPostId(p);
+ return `
+  <button class="secondary" onclick="toggleStore('${safe(id)}',this)">
+   📦 STORE
+  </button>
+ `;
+}
+
+function renderPost(p,vertical=false,fromStore=false) {
  const author = p.author?.name || p.author?.username || "Modd User";
  const likes = Array.isArray(p.likes) ? p.likes : [];
  const comments = Array.isArray(p.comments) ? p.comments : [];
- const myId = currentUser?._id || currentUser?.id;
+ const myId = getMyId();
 
  const liked = myId && likes.some(item =>
   String(item?._id || item) === String(myId)
@@ -643,6 +753,10 @@ function renderPost(p,vertical=false) {
   </div>
  `).join("");
 
+ const storeButton = fromStore
+  ? `<button class="secondary" onclick="toggleStore('${safe(getPostId(p))}',this)">🗑️ STORE से हटाएँ</button>`
+  : renderStoreButton(p);
+
  if(vertical) {
   return `
    <div class="reel-card">
@@ -652,13 +766,15 @@ function renderPost(p,vertical=false) {
      <div class="post-name">${safe(author)}</div>
      <p class="post-text">${safe(p.text || "")}</p>
      <div class="actions">
-      <button onclick="likePost('${safe(p._id)}',this)">
+      <button onclick="likePost('${safe(getPostId(p))}',this)">
        ${liked ? "❤️ Liked" : "🤍 Like"} (${likes.length})
       </button>
+      ${renderBestButton(p)}
+      ${storeButton}
       <span class="muted">${comments.length} Comments</span>
      </div>
      <div>${commentsHTML}</div>
-     <form class="comment-form" onsubmit="commentPost(event,'${safe(p._id)}')">
+     <form class="comment-form" onsubmit="commentPost(event,'${safe(getPostId(p))}')">
       <input name="comment" placeholder="Comment लिखें..." maxlength="1000" required>
       <button type="submit">Send</button>
      </form>
@@ -674,18 +790,122 @@ function renderPost(p,vertical=false) {
    ${mediaHTML}
    <div class="actions">
     <button class="${liked ? "" : "secondary"}"
-     onclick="likePost('${safe(p._id)}',this)">
+     onclick="likePost('${safe(getPostId(p))}',this)">
      ${liked ? "❤️ Liked" : "🤍 Like"} (${likes.length})
     </button>
+    ${renderBestButton(p)}
+    ${storeButton}
     <span class="muted">${comments.length} Comments</span>
    </div>
    <div>${commentsHTML}</div>
-   <form class="comment-form" onsubmit="commentPost(event,'${safe(p._id)}')">
+   <form class="comment-form" onsubmit="commentPost(event,'${safe(getPostId(p))}')">
     <input name="comment" placeholder="Comment लिखें..." maxlength="1000" required>
     <button type="submit">Send</button>
    </form>
   </div>
  `;
+}
+
+/* STORE: पोस्ट सेव या हटाएँ */
+async function toggleStore(postId,button) {
+ if(!postId) return;
+ button.disabled = true;
+
+ try {
+  const response = await fetch(API + "/posts/" + encodeURIComponent(postId) + "/store",{
+   method:"POST",
+   headers:{"Authorization":"Bearer " + token}
+  });
+
+  const result = await response.json();
+  if(!response.ok) throw new Error(result.message || "STORE अपडेट नहीं हुआ");
+
+  alert(result.saved ? "पोस्ट आपके STORE में सेव हो गई!" : "पोस्ट STORE से हटा दी गई!");
+
+  await loadFeed();
+
+  if(!document.getElementById("storeSection").classList.contains("hidden")) {
+   await loadMyStore();
+  }
+ } catch(error) {
+  alert(error.message);
+  button.disabled = false;
+ }
+}
+
+/* MY STORE: अपनी सेव की हुई पोस्ट लोड करें */
+async function loadMyStore() {
+ const container = document.getElementById("storeFeed");
+ container.innerHTML = "<p class='muted'>आपका STORE लोड हो रहा है...</p>";
+
+ try {
+  const response = await fetch(API + "/users/me/store",{
+   headers:{"Authorization":"Bearer " + token}
+  });
+
+  const result = await response.json();
+  if(!response.ok) throw new Error(result.message || "STORE लोड नहीं हुआ");
+
+  storePosts = result.posts || [];
+
+  if(!storePosts.length) {
+   container.innerHTML = "<div class='empty'>आपका STORE अभी खाली है।<br>किसी पोस्ट पर STORE दबाकर उसे यहाँ सेव करें।</div>";
+   return;
+  }
+
+  container.innerHTML = storePosts.map(p => renderPost(p,false,true)).join("");
+ } catch(error) {
+  container.innerHTML = `<p class="muted">Error: ${safe(error.message)}</p>`;
+ }
+}
+
+/* BEST: Backend 72 घंटे की सीमा जाँचेगा */
+async function giveBest(postId,button) {
+ if(!postId) return;
+
+ if(bestCooldownActive()) {
+  alert("आप अगला BEST " + bestTimeRemaining() + " बाद दे सकते हैं।");
+  return;
+ }
+
+ button.disabled = true;
+
+ try {
+  const response = await fetch(API + "/posts/" + encodeURIComponent(postId) + "/best",{
+   method:"POST",
+   headers:{"Authorization":"Bearer " + token}
+  });
+
+  const result = await response.json();
+
+  if(!response.ok) {
+   if(response.status === 429) {
+    if(result.nextBestAt) {
+     currentUser.lastBestAt = new Date(
+      new Date(result.nextBestAt).getTime() - 72 * 60 * 60 * 1000
+     ).toISOString();
+     localStorage.setItem("modd_user",JSON.stringify(currentUser));
+    }
+    alert(result.message || "आप 72 घंटे में केवल एक BEST दे सकते हैं।");
+    await loadFeed();
+    return;
+   }
+   throw new Error(result.message || "BEST नहीं दिया जा सका");
+  }
+
+  currentUser.lastBestAt = new Date().toISOString();
+  localStorage.setItem("modd_user",JSON.stringify(currentUser));
+
+  alert("आपका BEST सफलतापूर्वक जुड़ गया!");
+  await loadFeed();
+
+  if(!document.getElementById("storeSection").classList.contains("hidden")) {
+   await loadMyStore();
+  }
+ } catch(error) {
+  alert(error.message);
+  button.disabled = false;
+ }
 }
 
 async function loadFeed() {
