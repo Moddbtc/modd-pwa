@@ -30,7 +30,8 @@ button:disabled{opacity:.6}
 .post-text{white-space:pre-wrap;overflow-wrap:anywhere}
 .muted{color:#78918f;font-size:13px}
 .hidden{display:none}
-#message{color:#d34b4b;font-size:14px}
+#message,.status{font-size:14px}
+#message{color:#d34b4b}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
 .actions button{padding:9px 13px}
 .comment{background:#f3fbfa;border-radius:10px;padding:9px;margin:7px 0;font-size:14px}
@@ -38,6 +39,9 @@ button:disabled{opacity:.6}
 .comment-form input{margin:0;min-width:0}
 .comment-form button{white-space:nowrap;padding:11px}
 .post-media{width:100%;max-height:350px;object-fit:contain;border-radius:12px;margin-top:10px;background:#f3fbfa}
+.profile-top{display:flex;align-items:center;gap:15px;margin-bottom:15px}
+.avatar{width:85px;height:85px;border-radius:50%;object-fit:cover;background:#e5f7f5;border:3px solid #12b8b0}
+.profile-buttons{display:flex;gap:8px;flex-wrap:wrap}
 footer{text-align:center;color:#78918f;padding:25px;font-size:13px}
 </style>
 </head>
@@ -52,12 +56,10 @@ footer{text-align:center;color:#78918f;padding:25px;font-size:13px}
  <section class="card" id="auth">
   <h2>Welcome to Modd</h2>
   <p class="muted">अपने दोस्तों से जुड़ें और अपनी दुनिया शेयर करें।</p>
-
   <div class="tabs">
    <button id="loginTab" onclick="showLogin()">Login</button>
    <button class="secondary" id="signupTab" onclick="showSignup()">Sign Up</button>
   </div>
-
   <form id="authForm">
    <input id="name" placeholder="आपका नाम" class="hidden">
    <input id="email" type="email" placeholder="Email address" required>
@@ -68,6 +70,36 @@ footer{text-align:center;color:#78918f;padding:25px;font-size:13px}
  </section>
 
  <section id="home" class="hidden">
+
+  <div class="card">
+   <h2>My Profile 👤</h2>
+   <div class="profile-top">
+    <img id="profilePreview" class="avatar" alt="Profile Photo">
+    <div>
+     <b id="profileDisplayName">Modd User</b>
+     <p class="muted" id="profileDisplayUsername"></p>
+    </div>
+   </div>
+
+   <label><b>Profile Photo चुनें</b></label>
+   <input type="file" id="photoFile" accept="image/*">
+   <div class="profile-buttons">
+    <button type="button" onclick="uploadProfilePhoto()">Upload Photo</button>
+   </div>
+   <p class="status muted" id="photoStatus"></p>
+
+   <hr style="border:0;border-top:1px solid #edf3f2;margin:18px 0">
+
+   <h2>Edit Profile</h2>
+   <form id="profileForm">
+    <input id="profileName" placeholder="आपका नाम" required>
+    <input id="profileUsername" placeholder="Username">
+    <textarea id="profileBio" placeholder="अपने बारे में लिखें"></textarea>
+    <button type="submit" id="saveProfileBtn">Save Profile</button>
+   </form>
+   <p class="status" id="profileStatus"></p>
+  </div>
+
   <div class="card">
    <h2>आपका Modd Feed</h2>
    <p id="welcomeText">Modd पर आपका स्वागत है।</p>
@@ -100,11 +132,7 @@ try {
 
 function safe(value) {
  return String(value ?? "").replace(/[&<>"']/g, c => ({
-  "&":"&amp;",
-  "<":"&lt;",
-  ">":"&gt;",
-  '"':"&quot;",
-  "'":"&#39;"
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
  }[c]));
 }
 
@@ -126,7 +154,6 @@ function showSignup() {
 
 document.getElementById("authForm").addEventListener("submit", async e => {
  e.preventDefault();
-
  const message = document.getElementById("message");
  const submit = document.getElementById("submitBtn");
  submit.disabled = true;
@@ -143,22 +170,17 @@ document.getElementById("authForm").addEventListener("submit", async e => {
 
  try {
   const response = await fetch(API + "/auth/" + mode, {
-   method: "POST",
-   headers: {"Content-Type":"application/json"},
-   body: JSON.stringify(data)
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body:JSON.stringify(data)
   });
-
   const result = await response.json();
   if(!response.ok) throw new Error(result.message || "Login failed");
 
   token = result.token;
   currentUser = result.user || null;
-
   localStorage.setItem("modd_token", token);
-  if(currentUser) {
-   localStorage.setItem("modd_user", JSON.stringify(currentUser));
-  }
-
+  if(currentUser) localStorage.setItem("modd_user", JSON.stringify(currentUser));
   await openHome();
 
  } catch(error) {
@@ -169,34 +191,173 @@ document.getElementById("authForm").addEventListener("submit", async e => {
 });
 
 async function loadCurrentUser() {
- if(!token) return;
+ const response = await fetch(API + "/users/me", {
+  headers:{"Authorization":"Bearer " + token}
+ });
+ const result = await response.json();
+ if(!response.ok) throw new Error(result.message || "Profile load failed");
 
- try {
-  const response = await fetch(API + "/users/me", {
-   headers: {"Authorization":"Bearer " + token}
-  });
+ currentUser = result.user || result;
+ localStorage.setItem("modd_user", JSON.stringify(currentUser));
+ showProfile();
+}
 
-  const result = await response.json();
-  if(response.ok) {
-   currentUser = result.user || result;
-   localStorage.setItem("modd_user", JSON.stringify(currentUser));
-  }
- } catch(error) {
-  console.log("Profile loading error", error);
+function showProfile() {
+ const u = currentUser || {};
+ document.getElementById("profileDisplayName").textContent = u.name || "Modd User";
+ document.getElementById("profileDisplayUsername").textContent =
+  u.username ? "@" + u.username : "";
+
+ document.getElementById("profileName").value = u.name || "";
+ document.getElementById("profileUsername").value = u.username || "";
+ document.getElementById("profileBio").value = u.bio || "";
+
+ const photo = document.getElementById("profilePreview");
+ if(u.profilePhoto) {
+  photo.src = u.profilePhoto;
+ } else {
+  photo.removeAttribute("src");
  }
+
+ document.getElementById("welcomeText").textContent =
+  "नमस्ते " + (u.name || "दोस्त") + "! Modd पर आपका स्वागत है।";
 }
 
 async function openHome() {
  document.getElementById("auth").classList.add("hidden");
  document.getElementById("home").classList.remove("hidden");
 
- await loadCurrentUser();
-
- const name = currentUser?.name || "दोस्त";
- document.getElementById("welcomeText").textContent =
-  "नमस्ते " + name + "! Modd पर आपका स्वागत है।";
+ try {
+  await loadCurrentUser();
+ } catch(error) {
+  console.log(error);
+  showProfile();
+ }
 
  await loadFeed();
+}
+
+document.getElementById("profileForm").addEventListener("submit", async e => {
+ e.preventDefault();
+
+ const status = document.getElementById("profileStatus");
+ const button = document.getElementById("saveProfileBtn");
+ button.disabled = true;
+ status.textContent = "Profile सेव हो रही है...";
+
+ const data = {
+  name:document.getElementById("profileName").value.trim(),
+  username:document.getElementById("profileUsername").value.trim(),
+  bio:document.getElementById("profileBio").value.trim()
+ };
+
+ try {
+  const response = await fetch(API + "/users/me", {
+   method:"PATCH",
+   headers:{
+    "Content-Type":"application/json",
+    "Authorization":"Bearer " + token
+   },
+   body:JSON.stringify(data)
+  });
+
+  const result = await response.json();
+  if(!response.ok) throw new Error(result.message || "Profile update failed");
+
+  currentUser = result.user || {...currentUser,...data};
+  localStorage.setItem("modd_user", JSON.stringify(currentUser));
+  showProfile();
+  status.textContent = "Profile सफलतापूर्वक अपडेट हो गई!";
+
+ } catch(error) {
+  status.textContent = error.message;
+ } finally {
+  button.disabled = false;
+ }
+});
+
+async function uploadProfilePhoto() {
+ const file = document.getElementById("photoFile").files[0];
+ const status = document.getElementById("photoStatus");
+
+ if(!file) {
+  status.textContent = "पहले एक फोटो चुनिए।";
+  return;
+ }
+
+ if(!file.type.startsWith("image/")) {
+  status.textContent = "कृपया केवल Image फाइल चुनें।";
+  return;
+ }
+
+ if(file.size > 200 * 1024 * 1024) {
+  status.textContent = "फोटो का आकार 200 MB से अधिक है।";
+  return;
+ }
+
+ status.textContent = "Upload की तैयारी हो रही है...";
+
+ try {
+  const signatureResponse = await fetch(API + "/upload/photo/signature", {
+   method:"POST",
+   headers:{"Authorization":"Bearer " + token}
+  });
+
+  const signatureResult = await signatureResponse.json();
+  if(!signatureResponse.ok) {
+   throw new Error(signatureResult.message || "Upload permission failed");
+  }
+
+  const upload = signatureResult.upload;
+  const formData = new FormData();
+
+  formData.append("file", file);
+  formData.append("api_key", upload.apiKey);
+  formData.append("timestamp", upload.timestamp);
+  formData.append("folder", upload.folder);
+  formData.append("public_id", upload.publicId);
+  formData.append("signature", upload.signature);
+
+  status.textContent = "फोटो अपलोड हो रही है...";
+
+  const cloudResponse = await fetch(
+   "https://api.cloudinary.com/v1_1/" +
+   encodeURIComponent(upload.cloudName) + "/image/upload",
+   {method:"POST",body:formData}
+  );
+
+  const cloudResult = await cloudResponse.json();
+  if(!cloudResponse.ok) {
+   throw new Error(cloudResult.error?.message || "Cloudinary upload failed");
+  }
+
+  const photoUrl = cloudResult.secure_url;
+  status.textContent = "फोटो सेव हो रही है...";
+
+  const updateResponse = await fetch(API + "/users/me", {
+   method:"PATCH",
+   headers:{
+    "Content-Type":"application/json",
+    "Authorization":"Bearer " + token
+   },
+   body:JSON.stringify({profilePhoto:photoUrl})
+  });
+
+  const updateResult = await updateResponse.json();
+  if(!updateResponse.ok) {
+   throw new Error(updateResult.message || "Profile photo save failed");
+  }
+
+  currentUser = updateResult.user || {...currentUser,profilePhoto:photoUrl};
+  localStorage.setItem("modd_user", JSON.stringify(currentUser));
+  showProfile();
+
+  document.getElementById("photoFile").value = "";
+  status.textContent = "आपकी Profile Photo सफलतापूर्वक अपडेट हो गई!";
+
+ } catch(error) {
+  status.textContent = "Error: " + error.message;
+ }
 }
 
 async function loadFeed() {
@@ -205,9 +366,8 @@ async function loadFeed() {
 
  try {
   const response = await fetch(API + "/posts", {
-   headers: {"Authorization":"Bearer " + token}
+   headers:{"Authorization":"Bearer " + token}
   });
-
   const result = await response.json();
   if(!response.ok) throw new Error(result.message || "Feed load failed");
 
@@ -222,8 +382,8 @@ async function loadFeed() {
    const author = p.author?.name || p.author?.username || "Modd User";
    const likes = Array.isArray(p.likes) ? p.likes : [];
    const comments = Array.isArray(p.comments) ? p.comments : [];
+   const myId = currentUser?._id || currentUser?.id;
 
-   const myId = currentUser?.id || currentUser?._id;
    const liked = myId && likes.some(item =>
     String(item?._id || item) === String(myId)
    );
@@ -249,7 +409,7 @@ async function loadFeed() {
      ${mediaHTML}
      <div class="actions">
       <button class="${liked ? "" : "secondary"}"
-       onclick="likePost('${safe(p._id)}', this)">
+       onclick="likePost('${safe(p._id)}',this)">
        ${liked ? "❤️ Liked" : "🤍 Like"} (${likes.length})
       </button>
       <span class="muted">${comments.length} Comments</span>
@@ -270,18 +430,14 @@ async function loadFeed() {
 
 async function likePost(postId, button) {
  button.disabled = true;
-
  try {
   const response = await fetch(API + "/posts/" + postId + "/like", {
-   method: "POST",
-   headers: {"Authorization":"Bearer " + token}
+   method:"POST",
+   headers:{"Authorization":"Bearer " + token}
   });
-
   const result = await response.json();
   if(!response.ok) throw new Error(result.message || "Like failed");
-
   await loadFeed();
-
  } catch(error) {
   alert(error.message);
   button.disabled = false;
@@ -290,11 +446,9 @@ async function likePost(postId, button) {
 
 async function commentPost(event, postId) {
  event.preventDefault();
-
  const form = event.target;
  const input = form.elements.comment;
  const text = input.value.trim();
-
  if(!text) return;
 
  const button = form.querySelector("button");
@@ -302,19 +456,16 @@ async function commentPost(event, postId) {
 
  try {
   const response = await fetch(API + "/posts/" + postId + "/comments", {
-   method: "POST",
-   headers: {
+   method:"POST",
+   headers:{
     "Content-Type":"application/json",
     "Authorization":"Bearer " + token
    },
-   body: JSON.stringify({text})
+   body:JSON.stringify({text})
   });
-
   const result = await response.json();
   if(!response.ok) throw new Error(result.message || "Comment failed");
-
   await loadFeed();
-
  } catch(error) {
   alert(error.message);
   button.disabled = false;
@@ -324,7 +475,6 @@ async function commentPost(event, postId) {
 async function createPost() {
  const input = document.getElementById("postText");
  const text = input.value.trim();
-
  if(!text) {
   alert("पहले कुछ लिखिए");
   return;
@@ -332,21 +482,19 @@ async function createPost() {
 
  try {
   const response = await fetch(API + "/posts", {
-   method: "POST",
-   headers: {
+   method:"POST",
+   headers:{
     "Content-Type":"application/json",
     "Authorization":"Bearer " + token
    },
-   body: JSON.stringify({text})
+   body:JSON.stringify({text})
   });
-
   const result = await response.json();
   if(!response.ok) throw new Error(result.message || "Post failed");
 
   input.value = "";
   await loadFeed();
   alert("आपकी पोस्ट शेयर हो गई!");
-
  } catch(error) {
   alert(error.message);
  }
@@ -360,9 +508,7 @@ function logout() {
  location.reload();
 }
 
-if(token) {
- openHome();
-}
+if(token) openHome();
 
 if("serviceWorker" in navigator) {
  window.addEventListener("load", () => {
@@ -372,5 +518,4 @@ if("serviceWorker" in navigator) {
 }
 </script>
 </body>
- </html>
- 
+</html>
