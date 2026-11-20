@@ -1,0 +1,155 @@
+
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#13b8b0">
+<meta name="description" content="Modd - Connect, Share and Enjoy">
+<title>Modd Social App</title>
+<link rel="manifest" href="manifest.json">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f3fbfa;font-family:Arial,sans-serif;color:#183b3a}
+header{background:#12b8b0;color:white;padding:17px 18px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0}
+.logo{font-size:27px;font-weight:bold}
+header span{font-size:13px}
+main{max-width:600px;margin:auto;padding:16px}
+.card{background:white;border-radius:17px;padding:18px;margin:14px 0;box-shadow:0 3px 15px #0000000c}
+h2{margin:0 0 12px;color:#119e98}
+input,textarea{width:100%;padding:13px;margin:7px 0;border:1px solid #d5e7e5;border-radius:10px;font-size:15px}
+button{border:0;background:#12b8b0;color:white;padding:12px 18px;border-radius:10px;font-size:15px;font-weight:bold;cursor:pointer}
+button.secondary{background:#e5f7f5;color:#118f89}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0}
+.tabs button{flex:1}
+.post{border-top:1px solid #edf3f2;padding-top:15px;margin-top:15px}
+.muted{color:#78918f;font-size:13px}
+.hidden{display:none}
+#message{color:#d34b4b;font-size:14px}
+footer{text-align:center;color:#78918f;padding:25px;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+ <div class="logo">Modd.</div>
+ <span>Connect • Share • Enjoy</span>
+</header>
+<main>
+ <section class="card" id="auth">
+  <h2>Welcome to Modd</h2>
+  <p class="muted">अपने दोस्तों से जुड़ें और अपनी दुनिया शेयर करें।</p>
+  <div class="tabs">
+   <button id="loginTab" onclick="showLogin()">Login</button>
+   <button class="secondary" id="signupTab" onclick="showSignup()">Sign Up</button>
+  </div>
+  <form id="authForm">
+   <input id="name" placeholder="आपका नाम" class="hidden">
+   <input id="email" type="email" placeholder="Email address" required>
+   <input id="password" type="password" placeholder="Password" required>
+   <button type="submit" id="submitBtn">Login</button>
+  </form>
+  <p id="message"></p>
+ </section>
+
+ <section id="home" class="hidden">
+  <div class="card">
+   <h2>आपका Modd Feed</h2>
+   <p>नमस्ते! Modd पर आपका स्वागत है।</p>
+   <textarea id="postText" placeholder="आपके मन में क्या है?"></textarea>
+   <button onclick="createPost()">Post Share करें</button>
+   <button class="secondary" onclick="logout()">Logout</button>
+  </div>
+  <div class="card">
+   <h2>Latest Posts</h2>
+   <div id="feed"><p class="muted">अभी कोई पोस्ट नहीं है।</p></div>
+  </div>
+ </section>
+</main>
+<footer>© 2026 Modd Social App</footer>
+
+<script>
+const API="https://modd-social-app.onrender.com/api";
+let mode="login";
+let token=localStorage.getItem("modd_token")||"";
+
+function showLogin(){
+ mode="login";
+ document.getElementById("name").classList.add("hidden");
+ document.getElementById("submitBtn").textContent="Login";
+ document.getElementById("loginTab").className="";
+ document.getElementById("signupTab").className="secondary";
+}
+function showSignup(){
+ mode="signup";
+ document.getElementById("name").classList.remove("hidden");
+ document.getElementById("submitBtn").textContent="Create Account";
+ document.getElementById("signupTab").className="";
+ document.getElementById("loginTab").className="secondary";
+}
+document.getElementById("authForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const message=document.getElementById("message");
+ message.textContent="कृपया प्रतीक्षा करें...";
+ const data={
+ email:document.getElementById("email").value.trim(),
+ password:document.getElementById("password").value
+ };
+ if(mode==="signup")data.name=document.getElementById("name").value.trim();
+ try{
+  const response=await fetch(API+"/auth/"+mode,{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body:JSON.stringify(data)
+  });
+  const result=await response.json();
+  if(!response.ok)throw new Error(result.message||"Request failed");
+  token=result.token;
+  localStorage.setItem("modd_token",token);
+  openHome();
+ }catch(error){message.textContent=error.message}
+});
+async function openHome(){
+ document.getElementById("auth").classList.add("hidden");
+ document.getElementById("home").classList.remove("hidden");
+ await loadFeed();
+}
+async function loadFeed(){
+ try{
+  const response=await fetch(API+"/posts",{
+   headers:{Authorization:"Bearer "+token}
+  });
+  const result=await response.json();
+  const posts=Array.isArray(result)?result:(result.posts||[]);
+  document.getElementById("feed").innerHTML=posts.length?
+   posts.map(p=>`<div class="post"><b>${safe(p.user?.name||p.username||"Modd User")}</b><p>${safe(p.text||p.caption||"")}</p><span class="muted">❤️ ${p.likes?.length||0}</span></div>`).join("")
+   :"<p class='muted'>अभी कोई पोस्ट नहीं है।</p>";
+ }catch(e){document.getElementById("feed").textContent="Feed अभी लोड नहीं हो सकी।"}
+}
+async function createPost(){
+ const text=document.getElementById("postText").value.trim();
+ if(!text)return alert("पहले कुछ लिखिए");
+ try{
+  const response=await fetch(API+"/posts",{
+   method:"POST",
+   headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+   body:JSON.stringify({text})
+  });
+  const result=await response.json();
+  if(!response.ok)throw new Error(result.message||"Post failed");
+  document.getElementById("postText").value="";
+  await loadFeed();
+ }catch(e){alert(e.message)}
+}
+function safe(value){
+ return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function logout(){
+ localStorage.removeItem("modd_token");
+ token="";
+ location.reload();
+}
+if(token)openHome();
+</script>
+</body>
+    
+</html>
