@@ -15,7 +15,7 @@ body{margin:0;background:#f3fbfa;font-family:Arial,sans-serif;color:#183b3a}
 header{background:#12b8b0;color:white;padding:17px 18px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
 .logo{font-size:27px;font-weight:bold}
 header span{font-size:13px}
-main{max-width:600px;margin:auto;padding:16px}
+main{max-width:600px;margin:auto;padding:12px}
 .card{background:white;border-radius:17px;padding:18px;margin:14px 0;box-shadow:0 3px 15px #0000000c}
 h2{margin:0 0 12px;color:#119e98}
 input,textarea{width:100%;padding:13px;margin:7px 0;border:1px solid #d5e7e5;border-radius:10px;font-size:15px}
@@ -25,11 +25,14 @@ button.secondary{background:#e5f7f5;color:#118f89}
 button:disabled{opacity:.6}
 .tabs{display:flex;gap:8px;margin:15px 0}
 .tabs button{flex:1}
+.nav{display:flex;gap:7px;overflow-x:auto;margin:12px 0;padding:3px 0}
+.nav button{flex:1;min-width:85px;padding:12px 8px}
+.nav button.active{background:#087f79;color:white}
 .post{border-top:1px solid #edf3f2;padding-top:15px;margin-top:15px}
 .post-name{font-weight:bold;color:#118f89}
 .post-text{white-space:pre-wrap;overflow-wrap:anywhere}
 .muted{color:#78918f;font-size:13px}
-.hidden{display:none}
+.hidden{display:none!important}
 #message,.status{font-size:14px}
 #message{color:#d34b4b}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
@@ -42,7 +45,14 @@ button:disabled{opacity:.6}
 .profile-top{display:flex;align-items:center;gap:15px;margin-bottom:15px}
 .avatar{width:85px;height:85px;border-radius:50%;object-fit:cover;background:#e5f7f5;border:3px solid #12b8b0}
 .profile-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.upload-label{display:block;font-weight:bold;margin-top:12px}
+.reel-card{background:#102625;color:white;border-radius:17px;overflow:hidden;margin:18px 0}
+.reel-video{width:100%;height:min(72vh,650px);object-fit:contain;background:#000;display:block}
+.reel-info{padding:13px}
+.reel-info .post-name{color:#75e4dc}
+.empty{padding:20px;text-align:center;color:#78918f}
 footer{text-align:center;color:#78918f;padding:25px;font-size:13px}
+hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
 </style>
 </head>
 
@@ -71,47 +81,92 @@ footer{text-align:center;color:#78918f;padding:25px;font-size:13px}
 
  <section id="home" class="hidden">
 
-  <div class="card">
-   <h2>My Profile 👤</h2>
-   <div class="profile-top">
-    <img id="profilePreview" class="avatar" alt="Profile Photo">
-    <div>
-     <b id="profileDisplayName">Modd User</b>
-     <p class="muted" id="profileDisplayUsername"></p>
+  <div class="nav">
+   <button class="active" id="homeTab" onclick="showSection('homeSection',this)">🏠 Home</button>
+   <button class="secondary" id="videoTab" onclick="showSection('videoSection',this)">🎬 Video</button>
+   <button class="secondary" id="reelsTab" onclick="showSection('reelsSection',this)">▶ Reels</button>
+   <button class="secondary" id="profileTab" onclick="showSection('profileSection',this)">👤 Profile</button>
+  </div>
+
+  <div id="homeSection">
+
+   <div class="card">
+    <h2>Modd पर पोस्ट करें</h2>
+    <textarea id="postText" placeholder="आपके मन में क्या है?"></textarea>
+    <button onclick="createTextPost()">Text Post Share करें</button>
+
+    <hr>
+    <h2>📷 Photo Post</h2>
+    <p class="muted">यहाँ केवल फोटो पोस्ट होगी।</p>
+    <input type="file" id="postPhotoFile" accept="image/*">
+    <textarea id="photoCaption" placeholder="फोटो के बारे में लिखें (वैकल्पिक)"></textarea>
+    <button onclick="uploadPhotoPost()">Photo Post Share करें</button>
+    <p class="status muted" id="photoPostStatus"></p>
+   </div>
+
+   <div class="card">
+    <h2>Latest Posts</h2>
+    <div id="feed"><p class="muted">Posts लोड हो रही हैं...</p></div>
+   </div>
+  </div>
+
+  <div id="videoSection" class="hidden">
+   <div class="card">
+    <h2>🎬 Video Upload</h2>
+    <p class="muted">यहाँ सामान्य वीडियो पोस्ट करें। फोटो और वीडियो एक साथ नहीं जुड़ेंगे।</p>
+    <label class="upload-label">अपना वीडियो चुनें</label>
+    <input type="file" id="videoFile" accept="video/*">
+    <textarea id="videoCaption" placeholder="वीडियो के बारे में लिखें (वैकल्पिक)"></textarea>
+    <button onclick="uploadVideoPost()">Video Share करें</button>
+    <p class="status muted" id="videoStatus"></p>
+   </div>
+
+   <div class="card">
+    <h2>सभी Video Posts</h2>
+    <div id="videoFeed"><p class="muted">Videos लोड हो रहे हैं...</p></div>
+   </div>
+  </div>
+
+  <div id="reelsSection" class="hidden">
+   <div class="card">
+    <h2>▶ Modd Reels</h2>
+    <p class="muted">यहाँ वीडियो वर्टिकल Reels अंदाज़ में दिखाई देंगे।</p>
+   </div>
+   <div id="reelsFeed"></div>
+  </div>
+
+  <div id="profileSection" class="hidden">
+   <div class="card">
+    <h2>My Profile 👤</h2>
+    <div class="profile-top">
+     <img id="profilePreview" class="avatar" alt="Profile Photo">
+     <div>
+      <b id="profileDisplayName">Modd User</b>
+      <p class="muted" id="profileDisplayUsername"></p>
+     </div>
     </div>
+
+    <label class="upload-label">Profile Photo चुनें</label>
+    <input type="file" id="photoFile" accept="image/*">
+    <div class="profile-buttons">
+     <button type="button" onclick="uploadProfilePhoto()">Upload Photo</button>
+    </div>
+    <p class="status muted" id="photoStatus"></p>
+
+    <hr>
+    <h2>Edit Profile</h2>
+    <form id="profileForm">
+     <input id="profileName" placeholder="आपका नाम" required>
+     <input id="profileUsername" placeholder="Username">
+     <textarea id="profileBio" placeholder="अपने बारे में लिखें"></textarea>
+     <button type="submit" id="saveProfileBtn">Save Profile</button>
+    </form>
+    <p class="status" id="profileStatus"></p>
+    <hr>
+    <button class="secondary" onclick="logout()">Logout</button>
    </div>
-
-   <label><b>Profile Photo चुनें</b></label>
-   <input type="file" id="photoFile" accept="image/*">
-   <div class="profile-buttons">
-    <button type="button" onclick="uploadProfilePhoto()">Upload Photo</button>
-   </div>
-   <p class="status muted" id="photoStatus"></p>
-
-   <hr style="border:0;border-top:1px solid #edf3f2;margin:18px 0">
-
-   <h2>Edit Profile</h2>
-   <form id="profileForm">
-    <input id="profileName" placeholder="आपका नाम" required>
-    <input id="profileUsername" placeholder="Username">
-    <textarea id="profileBio" placeholder="अपने बारे में लिखें"></textarea>
-    <button type="submit" id="saveProfileBtn">Save Profile</button>
-   </form>
-   <p class="status" id="profileStatus"></p>
   </div>
 
-  <div class="card">
-   <h2>आपका Modd Feed</h2>
-   <p id="welcomeText">Modd पर आपका स्वागत है।</p>
-   <textarea id="postText" placeholder="आपके मन में क्या है?"></textarea>
-   <button onclick="createPost()">Post Share करें</button>
-   <button class="secondary" onclick="logout()">Logout</button>
-  </div>
-
-  <div class="card">
-   <h2>Latest Posts</h2>
-   <div id="feed"><p class="muted">Posts लोड हो रही हैं...</p></div>
-  </div>
  </section>
 </main>
 
@@ -123,6 +178,7 @@ const API = "https://modd-social-app.onrender.com/api";
 let mode = "login";
 let token = localStorage.getItem("modd_token") || "";
 let currentUser = null;
+let allPosts = [];
 
 try {
  currentUser = JSON.parse(localStorage.getItem("modd_user") || "null");
@@ -190,6 +246,19 @@ document.getElementById("authForm").addEventListener("submit", async e => {
  }
 });
 
+function showSection(sectionId,button) {
+ ["homeSection","videoSection","reelsSection","profileSection"].forEach(id => {
+  document.getElementById(id).classList.toggle("hidden",id !== sectionId);
+ });
+ document.querySelectorAll(".nav button").forEach(b => {
+  b.className = "secondary";
+ });
+ button.className = "active";
+
+ if(sectionId === "reelsSection") renderReels();
+ if(sectionId === "videoSection") renderVideos();
+}
+
 async function loadCurrentUser() {
  const response = await fetch(API + "/users/me", {
   headers:{"Authorization":"Bearer " + token}
@@ -218,9 +287,6 @@ function showProfile() {
  } else {
   photo.removeAttribute("src");
  }
-
- document.getElementById("welcomeText").textContent =
-  "नमस्ते " + (u.name || "दोस्त") + "! Modd पर आपका स्वागत है।";
 }
 
 async function openHome() {
@@ -276,6 +342,58 @@ document.getElementById("profileForm").addEventListener("submit", async e => {
  }
 });
 
+async function getUploadSignature(type) {
+ const response = await fetch(API + "/upload/" + type + "/signature", {
+  method:"POST",
+  headers:{"Authorization":"Bearer " + token}
+ });
+ const result = await response.json();
+ if(!response.ok) throw new Error(result.message || "Upload permission failed");
+ if(!result.upload) throw new Error("Upload जानकारी नहीं मिली");
+ return result.upload;
+}
+
+async function cloudinaryUpload(file,upload,type,status) {
+ const formData = new FormData();
+ formData.append("file",file);
+ formData.append("api_key",upload.apiKey);
+ formData.append("timestamp",upload.timestamp);
+ formData.append("folder",upload.folder);
+ formData.append("public_id",upload.publicId);
+ formData.append("signature",upload.signature);
+
+ status.textContent = "फाइल अपलोड हो रही है...";
+
+ const response = await fetch(
+  "https://api.cloudinary.com/v1_1/" +
+  encodeURIComponent(upload.cloudName) + "/" + type + "/upload",
+  {method:"POST",body:formData}
+ );
+ const result = await response.json();
+ if(!response.ok) {
+  throw new Error(result.error?.message || "Cloudinary upload failed");
+ }
+ if(!result.secure_url) throw new Error("Upload URL नहीं मिली");
+ return result.secure_url;
+}
+
+async function saveMediaPost(text,type,url) {
+ const response = await fetch(API + "/posts", {
+  method:"POST",
+  headers:{
+   "Content-Type":"application/json",
+   "Authorization":"Bearer " + token
+  },
+  body:JSON.stringify({
+   text:text,
+   media:[{type:type,url:url}]
+  })
+ });
+ const result = await response.json();
+ if(!response.ok) throw new Error(result.message || "Post failed");
+ return result;
+}
+
 async function uploadProfilePhoto() {
  const file = document.getElementById("photoFile").files[0];
  const status = document.getElementById("photoStatus");
@@ -284,57 +402,19 @@ async function uploadProfilePhoto() {
   status.textContent = "पहले एक फोटो चुनिए।";
   return;
  }
-
  if(!file.type.startsWith("image/")) {
   status.textContent = "कृपया केवल Image फाइल चुनें।";
-  return;
- }
-
- if(file.size > 200 * 1024 * 1024) {
-  status.textContent = "फोटो का आकार 200 MB से अधिक है।";
   return;
  }
 
  status.textContent = "Upload की तैयारी हो रही है...";
 
  try {
-  const signatureResponse = await fetch(API + "/upload/photo/signature", {
-   method:"POST",
-   headers:{"Authorization":"Bearer " + token}
-  });
+  const upload = await getUploadSignature("photo");
+  const photoUrl = await cloudinaryUpload(file,upload,"image",status);
 
-  const signatureResult = await signatureResponse.json();
-  if(!signatureResponse.ok) {
-   throw new Error(signatureResult.message || "Upload permission failed");
-  }
-
-  const upload = signatureResult.upload;
-  const formData = new FormData();
-
-  formData.append("file", file);
-  formData.append("api_key", upload.apiKey);
-  formData.append("timestamp", upload.timestamp);
-  formData.append("folder", upload.folder);
-  formData.append("public_id", upload.publicId);
-  formData.append("signature", upload.signature);
-
-  status.textContent = "फोटो अपलोड हो रही है...";
-
-  const cloudResponse = await fetch(
-   "https://api.cloudinary.com/v1_1/" +
-   encodeURIComponent(upload.cloudName) + "/image/upload",
-   {method:"POST",body:formData}
-  );
-
-  const cloudResult = await cloudResponse.json();
-  if(!cloudResponse.ok) {
-   throw new Error(cloudResult.error?.message || "Cloudinary upload failed");
-  }
-
-  const photoUrl = cloudResult.secure_url;
   status.textContent = "फोटो सेव हो रही है...";
-
-  const updateResponse = await fetch(API + "/users/me", {
+  const response = await fetch(API + "/users/me", {
    method:"PATCH",
    headers:{
     "Content-Type":"application/json",
@@ -343,21 +423,144 @@ async function uploadProfilePhoto() {
    body:JSON.stringify({profilePhoto:photoUrl})
   });
 
-  const updateResult = await updateResponse.json();
-  if(!updateResponse.ok) {
-   throw new Error(updateResult.message || "Profile photo save failed");
-  }
+  const result = await response.json();
+  if(!response.ok) throw new Error(result.message || "Profile photo save failed");
 
-  currentUser = updateResult.user || {...currentUser,profilePhoto:photoUrl};
+  currentUser = result.user || {...currentUser,profilePhoto:photoUrl};
   localStorage.setItem("modd_user", JSON.stringify(currentUser));
   showProfile();
-
   document.getElementById("photoFile").value = "";
-  status.textContent = "आपकी Profile Photo सफलतापूर्वक अपडेट हो गई!";
+  status.textContent = "Profile Photo सफलतापूर्वक अपडेट हो गई!";
 
  } catch(error) {
   status.textContent = "Error: " + error.message;
  }
+}
+
+async function uploadPhotoPost() {
+ const file = document.getElementById("postPhotoFile").files[0];
+ const status = document.getElementById("photoPostStatus");
+ const caption = document.getElementById("photoCaption").value.trim();
+
+ if(!file) {
+  status.textContent = "पहले फोटो चुनिए।";
+  return;
+ }
+ if(!file.type.startsWith("image/")) {
+  status.textContent = "केवल फोटो चुनिए।";
+  return;
+ }
+
+ status.textContent = "फोटो अपलोड की तैयारी हो रही है...";
+
+ try {
+  const upload = await getUploadSignature("photo");
+  const url = await cloudinaryUpload(file,upload,"image",status);
+  status.textContent = "पोस्ट सेव हो रही है...";
+  await saveMediaPost(caption,"image",url);
+
+  document.getElementById("postPhotoFile").value = "";
+  document.getElementById("photoCaption").value = "";
+  status.textContent = "आपकी Photo Post शेयर हो गई!";
+  await loadFeed();
+ } catch(error) {
+  status.textContent = "Error: " + error.message;
+ }
+}
+
+async function uploadVideoPost() {
+ const file = document.getElementById("videoFile").files[0];
+ const status = document.getElementById("videoStatus");
+ const caption = document.getElementById("videoCaption").value.trim();
+
+ if(!file) {
+  status.textContent = "पहले वीडियो चुनिए।";
+  return;
+ }
+ if(!file.type.startsWith("video/")) {
+  status.textContent = "कृपया केवल Video फाइल चुनें।";
+  return;
+ }
+
+ status.textContent = "वीडियो अपलोड की तैयारी हो रही है...";
+
+ try {
+  const upload = await getUploadSignature("video");
+
+  if(upload.maxFileSizeBytes && file.size > upload.maxFileSizeBytes) {
+   throw new Error("वीडियो का आकार तय सीमा से अधिक है।");
+  }
+
+  const url = await cloudinaryUpload(file,upload,"video",status);
+  status.textContent = "वीडियो पोस्ट सेव हो रही है...";
+  await saveMediaPost(caption,"video",url);
+
+  document.getElementById("videoFile").value = "";
+  document.getElementById("videoCaption").value = "";
+  status.textContent = "आपका Video सफलतापूर्वक शेयर हो गया!";
+  await loadFeed();
+  renderVideos();
+  renderReels();
+ } catch(error) {
+  status.textContent = "Error: " + error.message;
+ }
+}
+
+function postMedia(p) {
+ return Array.isArray(p.media) ? p.media : [];
+}
+
+function isVideoPost(p) {
+ return postMedia(p).some(m => m.type === "video" && m.url);
+}
+
+function renderPost(p,vertical=false) {
+ const author = p.author?.name || p.author?.username || "Modd User";
+ const likes = Array.isArray(p.likes) ? p.likes : [];
+ const comments = Array.isArray(p.comments) ? p.comments : [];
+ const myId = currentUser?._id || currentUser?.id;
+
+ const liked = myId && likes.some(item =>
+  String(item?._id || item) === String(myId)
+ );
+
+ const mediaHTML = postMedia(p).map(m => {
+  if(m.type === "video") {
+   return `<video class="${vertical ? "reel-video" : "post-media"}" controls playsinline preload="metadata" src="${safe(m.url)}"></video>`;
+  }
+  return `<img class="post-media" src="${safe(m.url)}" alt="Post image">`;
+ }).join("");
+
+ const commentsHTML = comments.map(c => `
+  <div class="comment">
+   <b>${safe(c.user?.name || c.user?.username || "User")}</b>
+   <div>${safe(c.text)}</div>
+  </div>
+ `).join("");
+
+ return `
+  <div class="${vertical ? "reel-card" : "post"}">
+   <div class="${vertical ? "reel-info" : ""}">
+    <div class="post-name">${safe(author)}</div>
+    <p class="post-text">${safe(p.text || "")}</p>
+   </div>
+   ${mediaHTML}
+   <div class="${vertical ? "reel-info" : ""}">
+    <div class="actions">
+     <button class="${liked ? "" : "secondary"}"
+      onclick="likePost('${safe(p._id)}',this)">
+      ${liked ? "❤️ Liked" : "🤍 Like"} (${likes.length})
+     </button>
+     <span class="muted">${comments.length} Comments</span>
+    </div>
+    <div>${commentsHTML}</div>
+    <form class="comment-form" onsubmit="commentPost(event,'${safe(p._id)}')">
+     <input name="comment" placeholder="Comment लिखें..." maxlength="1000" required>
+     <button type="submit">Send</button>
+    </form>
+   </div>
+  </div>
+ `;
 }
 
 async function loadFeed() {
@@ -371,61 +574,41 @@ async function loadFeed() {
   const result = await response.json();
   if(!response.ok) throw new Error(result.message || "Feed load failed");
 
-  const posts = result.posts || [];
-
-  if(posts.length === 0) {
-   feed.innerHTML = "<p class='muted'>अभी कोई पोस्ट नहीं है।</p>";
-   return;
+  allPosts = result.posts || [];
+  if(allPosts.length === 0) {
+   feed.innerHTML = "<p class='empty'>अभी कोई पोस्ट नहीं है।</p>";
+  } else {
+   feed.innerHTML = allPosts.map(p => renderPost(p)).join("");
   }
 
-  feed.innerHTML = posts.map(p => {
-   const author = p.author?.name || p.author?.username || "Modd User";
-   const likes = Array.isArray(p.likes) ? p.likes : [];
-   const comments = Array.isArray(p.comments) ? p.comments : [];
-   const myId = currentUser?._id || currentUser?.id;
-
-   const liked = myId && likes.some(item =>
-    String(item?._id || item) === String(myId)
-   );
-
-   const mediaHTML = (p.media || []).map(m => {
-    if(m.type === "video") {
-     return `<video class="post-media" controls src="${safe(m.url)}"></video>`;
-    }
-    return `<img class="post-media" src="${safe(m.url)}" alt="Post image">`;
-   }).join("");
-
-   const commentsHTML = comments.map(c => `
-    <div class="comment">
-     <b>${safe(c.user?.name || c.user?.username || "User")}</b>
-     <div>${safe(c.text)}</div>
-    </div>
-   `).join("");
-
-   return `
-    <div class="post">
-     <div class="post-name">${safe(author)}</div>
-     <p class="post-text">${safe(p.text || "")}</p>
-     ${mediaHTML}
-     <div class="actions">
-      <button class="${liked ? "" : "secondary"}"
-       onclick="likePost('${safe(p._id)}',this)">
-       ${liked ? "❤️ Liked" : "🤍 Like"} (${likes.length})
-      </button>
-      <span class="muted">${comments.length} Comments</span>
-     </div>
-     <div>${commentsHTML}</div>
-     <form class="comment-form" onsubmit="commentPost(event,'${safe(p._id)}')">
-      <input name="comment" placeholder="Comment लिखें..." maxlength="1000" required>
-      <button type="submit">Send</button>
-     </form>
-    </div>
-   `;
-  }).join("");
+  renderVideos();
+  renderReels();
 
  } catch(error) {
   feed.innerHTML = `<p class="muted">${safe(error.message)}</p>`;
  }
+}
+
+function renderVideos() {
+ const container = document.getElementById("videoFeed");
+ const videos = allPosts.filter(isVideoPost);
+
+ if(!videos.length) {
+  container.innerHTML = "<p class='empty'>अभी कोई Video Post नहीं है।</p>";
+  return;
+ }
+ container.innerHTML = videos.map(p => renderPost(p)).join("");
+}
+
+function renderReels() {
+ const container = document.getElementById("reelsFeed");
+ const videos = allPosts.filter(isVideoPost);
+
+ if(!videos.length) {
+  container.innerHTML = "<div class='card empty'>अभी कोई Reel उपलब्ध नहीं है।<br>पहले Video सेक्शन में वीडियो शेयर करें।</div>";
+  return;
+ }
+ container.innerHTML = videos.map(p => renderPost(p,true)).join("");
 }
 
 async function likePost(postId, button) {
@@ -472,9 +655,10 @@ async function commentPost(event, postId) {
  }
 }
 
-async function createPost() {
+async function createTextPost() {
  const input = document.getElementById("postText");
  const text = input.value.trim();
+
  if(!text) {
   alert("पहले कुछ लिखिए");
   return;
