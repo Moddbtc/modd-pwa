@@ -178,6 +178,18 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
    <button class="secondary" onclick="showSection('profileSection',this)">👤 Profile</button>
   </div>
 
+  <div id="findUserSection" class="hidden">
+  <div class="card">
+    <h2>🔎 Search User</h2>
+    <input
+      type="text"
+      id="searchUsername"
+      placeholder="Username लिखें"
+    >
+    <button onclick="searchUser()">Search</button>
+    <div id="searchResult"></div>
+  </div>
+</div>
   <div id="homeSection">
    <div class="card">
     <h2>Modd पर पोस्ट करें</h2>
