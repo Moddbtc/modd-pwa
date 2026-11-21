@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -141,6 +140,14 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
  border-radius:20px;
  font-size:12px;
 }
+
+.story-item{border:1px solid #e1f0ee;border-radius:14px;padding:12px;margin:12px 0}
+.story-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.story-avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #12b8b0;background:#e5f7f5}
+.story-media{width:100%;max-height:480px;object-fit:contain;background:#101817;border-radius:12px}
+.story-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.story-actions button{padding:9px 11px;font-size:13px}
+
 </style>
 </head>
 
@@ -169,22 +176,43 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
 
  <section id="home" class="hidden">
 
-  <button class="active" onclick="showSection('homeSection',this)">🏠 Home</button>
-<button class="secondary" onclick="showSection('videoSection',this)">🎬 Video</button>
-<button class="secondary" onclick="showSection('reelsSection',this)">▶ Reels</button>
-<button class="secondary" onclick="showSection('findUserSection',this)">🔎 Search</button>
-<button class="secondary" onclick="showSection('profileSection',this)">👤 Profile</button>
-  <div class="card">
+  <div class="nav">
+   <button class="active" onclick="showSection('homeSection',this)">🏠 Home</button>
+   <button class="secondary" onclick="showSection('storiesSection',this)">⭕ Stories</button>
+   <button class="secondary" onclick="showSection('videoSection',this)">🎬 Video</button>
+   <button class="secondary" onclick="showSection('reelsSection',this)">▶ Reels</button>
+   <button class="secondary" onclick="showSection('storeSection',this)">📦 Store</button>
+   <button class="secondary" onclick="showSection('findUserSection',this)">🔎 Search</button>
+   <button class="secondary" onclick="showSection('profileSection',this)">👤 Profile</button>
+  </div>
+
+  <div id="findUserSection" class="hidden">
+   <div class="card">
     <h2>🔎 Search User</h2>
-    <input
-      type="text"
-      id="searchUsername"
-      placeholder="Username लिखें"
-    >
+    <input type="text" id="searchUsername" placeholder="Username लिखें">
     <button onclick="searchUser()">Search</button>
     <div id="searchResult"></div>
+   </div>
   </div>
-</div>
+
+  <div id="storiesSection" class="hidden">
+   <div class="card">
+    <h2>⭕ Modd Stories</h2>
+    <p class="muted">फोटो या वीडियो Story शेयर करें। Story 24 घंटे तक दिखाई देगी।</p>
+    <label class="upload-label">फोटो या वीडियो चुनें</label>
+    <input type="file" id="storyFile" accept="image/*,video/*">
+    <textarea id="storyCaption" maxlength="500" placeholder="Story पर कुछ लिखें..."></textarea>
+    <input id="storyMusic" maxlength="120" placeholder="Music / गाने का नाम (वैकल्पिक)">
+    <button onclick="uploadStory()">अपनी Story Share करें</button>
+    <p id="storyStatus" class="status muted"></p>
+    <button class="secondary" onclick="loadStories()">↻ Stories Refresh करें</button>
+   </div>
+   <div class="card">
+    <h2>सभी Active Stories</h2>
+    <div id="storiesFeed"><p class="muted">Stories लोड हो रही हैं...</p></div>
+   </div>
+  </div>
+
   <div id="homeSection">
    <div class="card">
     <h2>Modd पर पोस्ट करें</h2>
@@ -448,7 +476,7 @@ function startReelsObserver() {
 function showSection(sectionId,button) {
  stopReelsObserver();
 
- ["homeSection","videoSection","reelsSection","storeSection","profileSection","findUserSection"].forEach(id => {
+ ["homeSection","storiesSection","videoSection","reelsSection","storeSection","profileSection","findUserSection"].forEach(id => {
   document.getElementById(id).classList.toggle("hidden",id !== sectionId);
  });
 
@@ -462,6 +490,7 @@ function showSection(sectionId,button) {
  }
  if(sectionId === "videoSection") renderVideos();
  if(sectionId === "storeSection") loadMyStore();
+ if(sectionId === "storiesSection") loadStories();
 }
 
  async function searchUser() {
@@ -593,6 +622,7 @@ async function openHome() {
   showProfile();
  }
  await loadFeed();
+  await loadStories();
 }
 
 document.getElementById("profileForm").addEventListener("submit",async e => {
@@ -1135,6 +1165,232 @@ async function createTextPost() {
   alert(error.message);
  }
 }
+
+
+// =====================================
+// MODD STORIES FRONTEND
+// =====================================
+
+function storyAuthorId(story) {
+ const author = story?.author;
+ return String(author?._id || author?.id || author || "");
+}
+
+function storyExpiryText(expiresAt) {
+ const remaining = Math.max(0, new Date(expiresAt).getTime() - Date.now());
+ const hours = Math.floor(remaining / 3600000);
+ const minutes = Math.floor((remaining % 3600000) / 60000);
+ return hours + " घंटे " + minutes + " मिनट बाकी";
+}
+
+async function uploadStory() {
+ const file = document.getElementById("storyFile").files[0];
+ const caption = document.getElementById("storyCaption").value.trim();
+ const musicName = document.getElementById("storyMusic").value.trim();
+ const status = document.getElementById("storyStatus");
+ const button = document.querySelector("#storiesSection button[onclick='uploadStory()']");
+
+ if(!file) {
+  status.textContent = "पहले फोटो या वीडियो चुनिए।";
+  return;
+ }
+ const mediaType = file.type.startsWith("image/") ? "image" :
+  file.type.startsWith("video/") ? "video" : "";
+ if(!mediaType) {
+  status.textContent = "कृपया फोटो या वीडियो फाइल चुनें।";
+  return;
+ }
+ const maxSize = mediaType === "image" ? 20 * 1024 * 1024 : 100 * 1024 * 1024;
+ if(file.size > maxSize) {
+  status.textContent = mediaType === "image"
+   ? "फोटो 20 MB से छोटी होनी चाहिए।"
+   : "वीडियो 100 MB से छोटा होना चाहिए।";
+  return;
+ }
+
+ button.disabled = true;
+ status.textContent = "Story अपलोड की तैयारी हो रही है...";
+ try {
+  const sigResponse = await fetch(API + "/upload/story/signature", {
+   method:"POST",
+   headers:{
+    "Content-Type":"application/json",
+    "Authorization":"Bearer " + token
+   },
+   body:JSON.stringify({mediaType})
+  });
+  const sigResult = await sigResponse.json();
+  if(!sigResponse.ok) throw new Error(sigResult.message || "Upload permission नहीं मिली।");
+
+  const mediaUrl = await cloudinaryUpload(file, sigResult.upload, mediaType, status);
+  status.textContent = "Story सेव हो रही है...";
+
+  const saveResponse = await fetch(API + "/stories", {
+   method:"POST",
+   headers:{
+    "Content-Type":"application/json",
+    "Authorization":"Bearer " + token
+   },
+   body:JSON.stringify({mediaType, mediaUrl, caption, musicName})
+  });
+  const saveResult = await saveResponse.json();
+  if(!saveResponse.ok) throw new Error(saveResult.message || "Story सेव नहीं हुई।");
+
+  document.getElementById("storyFile").value = "";
+  document.getElementById("storyCaption").value = "";
+  document.getElementById("storyMusic").value = "";
+  status.textContent = "आपकी Story सफलतापूर्वक शेयर हो गई!";
+  await loadStories();
+ } catch(error) {
+  status.textContent = "Error: " + error.message;
+ } finally {
+  button.disabled = false;
+ }
+}
+
+async function loadStories() {
+ const box = document.getElementById("storiesFeed");
+ if(!box || !token) return;
+ box.innerHTML = "<p class='muted'>Stories लोड हो रही हैं...</p>";
+ try {
+  const response = await fetch(API + "/stories", {
+   headers:{"Authorization":"Bearer " + token}
+  });
+  const result = await response.json();
+  if(!response.ok) throw new Error(result.message || "Stories लोड नहीं हुईं।");
+  const stories = result.stories || [];
+  if(!stories.length) {
+   box.innerHTML = "<p class='empty'>अभी कोई Active Story नहीं है। पहली Story आप लगाइए!</p>";
+   return;
+  }
+
+  const myId = String(getMyId());
+  box.innerHTML = stories.map(story => {
+   const author = story.author || {};
+   const authorId = storyAuthorId(story);
+   const isMine = authorId === myId;
+   const media = story.mediaType === "video"
+    ? `<video class="story-media" src="${safe(story.mediaUrl)}" controls playsinline preload="metadata" onclick="recordStoryView('${safe(story._id)}')"></video>`
+    : `<img class="story-media" src="${safe(story.mediaUrl)}" alt="Story" onclick="recordStoryView('${safe(story._id)}')">`;
+   const liked = Array.isArray(story.likes) && story.likes.some(id => String(id?._id || id) === myId);
+   const viewersCount = Array.isArray(story.viewers) ? story.viewers.length : 0;
+   const likesCount = Array.isArray(story.likes) ? story.likes.length : 0;
+   return `
+    <article class="story-item">
+     <div class="story-head">
+      <img class="story-avatar" src="${safe(author.profilePhoto || "")}" alt=""
+       onerror="this.style.display='none'">
+      <div>
+       <b>${safe(author.name || "Modd User")}</b>
+       <div class="muted">@${safe(author.username || "user")} • ${safe(storyExpiryText(story.expiresAt))}</div>
+      </div>
+     </div>
+     ${media}
+     ${story.caption ? `<p class="post-text">${safe(story.caption)}</p>` : ""}
+     ${story.musicName ? `<p class="muted">🎵 ${safe(story.musicName)}</p>` : ""}
+     ${Array.isArray(story.mentions) && story.mentions.length ? `<p class="muted">Tag: ${story.mentions.map(x => "@"+safe(x)).join(" ")}</p>` : ""}
+     <div class="story-actions">
+      <button class="secondary" onclick="likeStory('${safe(story._id)}')">${liked ? "❤️ Liked" : "🤍 Like"} (${likesCount})</button>
+      <button class="secondary" onclick="replyToStory('${safe(story._id)}')">💬 Reply</button>
+      ${isMine ? `<button class="secondary" onclick="showStoryViewers('${safe(story._id)}')">👁 Viewers (${viewersCount})</button>
+       <button class="secondary" onclick="showStoryLikes('${safe(story._id)}')">❤️ Likes</button>
+       <button class="secondary" onclick="deleteStory('${safe(story._id)}')">🗑 Delete</button>` : ""}
+     </div>
+    </article>`;
+  }).join("");
+ } catch(error) {
+  box.innerHTML = `<p class="muted">Error: ${safe(error.message)}</p>`;
+ }
+}
+
+async function recordStoryView(storyId) {
+ try {
+  await fetch(API + "/stories/" + encodeURIComponent(storyId) + "/view", {
+   method:"POST",
+   headers:{"Authorization":"Bearer " + token}
+  });
+ } catch(error) {
+  console.log("Story view could not be recorded", error);
+ }
+}
+
+async function likeStory(storyId) {
+ try {
+  const response = await fetch(API + "/stories/" + encodeURIComponent(storyId) + "/like", {
+   method:"POST",
+   headers:{"Authorization":"Bearer " + token}
+  });
+  const result = await response.json();
+  if(!response.ok) throw new Error(result.message || "Like update नहीं हुआ।");
+  await loadStories();
+ } catch(error) {
+  alert(error.message);
+ }
+}
+
+async function replyToStory(storyId) {
+ const text = prompt("अपना Private Reply लिखें:");
+ if(!text || !text.trim()) return;
+ try {
+  const response = await fetch(API + "/stories/" + encodeURIComponent(storyId) + "/replies", {
+   method:"POST",
+   headers:{
+    "Content-Type":"application/json",
+    "Authorization":"Bearer " + token
+   },
+   body:JSON.stringify({text:text.trim()})
+  });
+  const result = await response.json();
+  if(!response.ok) throw new Error(result.message || "Reply नहीं भेजा जा सका।");
+  alert("आपका Private Story Reply भेज दिया गया।");
+ } catch(error) {
+  alert(error.message);
+ }
+}
+
+async function showStoryViewers(storyId) {
+ try {
+  const response = await fetch(API + "/stories/" + encodeURIComponent(storyId) + "/viewers", {
+   headers:{"Authorization":"Bearer " + token}
+  });
+  const result = await response.json();
+  if(!response.ok) throw new Error(result.message || "Viewers नहीं मिले।");
+  const names = (result.users || []).map(user => user.name + (user.username ? " (@" + user.username + ")" : ""));
+  alert("कुल Views: " + (result.count || 0) + "\n\n" + (names.join("\n") || "अभी किसी ने नहीं देखा।"));
+ } catch(error) {
+  alert(error.message);
+ }
+}
+
+async function showStoryLikes(storyId) {
+ try {
+  const response = await fetch(API + "/stories/" + encodeURIComponent(storyId) + "/likes", {
+   headers:{"Authorization":"Bearer " + token}
+  });
+  const result = await response.json();
+  if(!response.ok) throw new Error(result.message || "Likes नहीं मिले।");
+  const names = (result.users || []).map(user => user.name + (user.username ? " (@" + user.username + ")" : ""));
+  alert("कुल Likes: " + (result.count || 0) + "\n\n" + (names.join("\n") || "अभी कोई Like नहीं।"));
+ } catch(error) {
+  alert(error.message);
+ }
+}
+
+async function deleteStory(storyId) {
+ if(!confirm("क्या आप यह Story Delete करना चाहते हैं?")) return;
+ try {
+  const response = await fetch(API + "/stories/" + encodeURIComponent(storyId), {
+   method:"DELETE",
+   headers:{"Authorization":"Bearer " + token}
+  });
+  const result = await response.json();
+  if(!response.ok) throw new Error(result.message || "Story Delete नहीं हुई।");
+  await loadStories();
+ } catch(error) {
+  alert(error.message);
+ }
+}
+
 
 function logout() {
  stopReelsObserver();
