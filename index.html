@@ -464,6 +464,97 @@ function showSection(sectionId,button) {
  if(sectionId === "storeSection") loadMyStore();
 }
 
+ async function searchUser() {
+ const input = document.getElementById("searchUsername");
+ const resultBox = document.getElementById("searchResult");
+ const username = input.value.trim().replace(/^@/, "");
+
+ if(!username) {
+  resultBox.innerHTML = "<p class='muted'>कृपया Username लिखें।</p>";
+  return;
+ }
+
+ resultBox.innerHTML = "<p class='muted'>यूज़र खोजा जा रहा है...</p>";
+
+ try {
+  const response = await fetch(
+   API + "/users/" + encodeURIComponent(username),
+   {
+    headers: {
+     "Authorization": "Bearer " + token
+    }
+   }
+  );
+
+  const result = await response.json();
+
+  if(!response.ok) {
+   throw new Error(result.message || "यूज़र नहीं मिला।");
+  }
+
+  const user = result.profile || result.user || result;
+  const posts = result.posts || [];
+
+  if(!user || !user.username) {
+   throw new Error("यूज़र की जानकारी नहीं मिली।");
+  }
+
+  const myId = getMyId();
+  const userId = user.id || user._id || "";
+  const isMe = String(myId) === String(userId);
+
+  resultBox.innerHTML = `
+   <div class="card">
+    <div class="profile-top">
+     <img class="avatar"
+      src="${safe(user.profilePhoto || "")}"
+      alt="Profile Photo"
+      onerror="this.style.display='none'">
+     <div>
+      <b>${safe(user.name || "Modd User")}</b>
+      <p class="muted">@${safe(user.username)}</p>
+     </div>
+    </div>
+
+    <p>${safe(user.bio || "अभी कोई Bio नहीं है।")}</p>
+
+    <div class="actions">
+     <span>👥 Followers: <b>${Number(user.followersCount || 0)}</b></span>
+     <span>➡ Following: <b>${Number(user.followingCount || 0)}</b></span>
+    </div>
+
+    ${
+     isMe
+      ? "<p class='muted'>यह आपका अपना Profile है।</p>"
+      : `<button id="followUserBtn"
+          onclick="toggleFollowUser('${safe(userId)}',this)">
+          Follow करें
+        </button>`
+    }
+
+    <hr>
+    <h2>Posts</h2>
+    <div id="searchedUserPosts"></div>
+   </div>
+  `;
+
+  const postsBox = document.getElementById("searchedUserPosts");
+
+  if(!posts.length) {
+   postsBox.innerHTML = "<p class='empty'>इस यूज़र की अभी कोई पोस्ट नहीं है।</p>";
+  } else {
+   postsBox.innerHTML = posts.map(post => renderPost(post)).join("");
+  }
+
+  if(!isMe) {
+   await checkFollowStatus(userId);
+  }
+
+ } catch(error) {
+  resultBox.innerHTML =
+   `<p class="muted">Error: ${safe(error.message)}</p>`;
+ }
+}
 async function loadCurrentUser() {
  const response = await fetch(API + "/users/me", {
   headers:{"Authorization":"Bearer " + token}
