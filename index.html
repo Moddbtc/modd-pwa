@@ -448,7 +448,7 @@ function startReelsObserver() {
 function showSection(sectionId,button) {
  stopReelsObserver();
 
- ["homeSection","videoSection","reelsSection","storeSection","profileSection"].forEach(id => {
+ ["homeSection","videoSection","reelsSection","storeSection","profileSection","findUserSection"].forEach(id => {
   document.getElementById(id).classList.toggle("hidden",id !== sectionId);
  });
 
