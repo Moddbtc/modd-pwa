@@ -348,17 +348,17 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
      <p class="profile-bio" id="profileDisplayBio">अपनी दुनिया, अपनी पहचान।</p>
     </div>
     <div class="profile-quick-nav" aria-label="Profile shortcuts">
-     <button type="button" onclick="toggleProfilePanel('pass')"><strong>PASS</strong><span>My PASS</span></button>
-     <button type="button" onclick="toggleProfilePanel('menu')"><strong>☰</strong><span>MENU</span></button>
-     <button type="button" onclick="toggleProfilePanel('best')"><strong>Ⓑ</strong><span>My BEST</span></button>
+     <button type="button" onclick="toggleProfilePanel('pass')"><strong>PASS</strong></button>
+     <button type="button" onclick="toggleProfilePanel('menu')"><strong>☰ MENU</strong></button>
+     <button type="button" onclick="toggleProfilePanel('best')"><strong><span class="best-wrap"><span class="best-circle"><span class="best-letter">B</span></span></span> BEST</strong></button>
     </div>
     <div id="passPanel" class="pass-panel">
-     <h3>My PASS</h3>
+     <h3>PASS</h3>
      <p class="muted">आपके चैनल को मिले सभी BEST यहाँ जमा होंगे। 5,000 BEST पूरे होने पर Monetization Apply का विकल्प खुलेगा।</p>
-     <p id="passCountText"><b>PASS BEST:</b> अभी सर्वर से कुल संख्या जोड़ना बाकी है।</p>
+     <p id="passCountText"><b>PASS BEST:</b> गिनती लोड हो रही है...</p>
      <div class="pass-progress" aria-label="Monetization progress"><span id="passProgressBar"></span></div>
      <p class="muted">लक्ष्य: 5,000 BEST</p>
-     <button type="button" id="passApplyButton" disabled title="PASS की सर्वर गणना जुड़ने के बाद उपलब्ध होगा">Monetization Apply</button>
+     <button type="button" id="passApplyButton" disabled onclick="applyForMonetization()" title="5,000 BEST पूरे होने पर उपलब्ध होगा">Monetization Apply</button>
      <p class="muted" id="passApplyNote">Apply का विकल्प 5,000 BEST पूरे होने पर खुलेगा।</p>
     </div>
     <div id="menuPanel" class="profile-menu-panel">
@@ -377,10 +377,10 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
      </div>
     </div>
     <div id="bestPanel" class="best-panel">
-     <h3>My BEST</h3>
-     <p class="muted">आपके पोस्ट को मिले BEST और आपके दिए गए BEST का विवरण यहाँ दिखेगा।</p>
-     <p class="muted">इसका सही कुल आँकड़ा सर्वर से जोड़ने के अगले चरण में आएगा।</p>
+     <h3>BEST</h3>
+     <p class="muted">BEST बटन से आप किसी पोस्ट को BEST दे सकते हैं। एक अकाउंट से हर 72 घंटे में एक BEST दिया जा सकता है।</p>
     </div>
+
     <div class="profile-toolbar">
      <button type="button" class="secondary" onclick="document.getElementById('photoFile').click()">📷 Camera</button>
      <button type="button" class="secondary" onclick="showSection('findUserSection',document.querySelector('.nav button:nth-child(6)'))">🔎 Search</button>
@@ -899,6 +899,55 @@ function openReelFromStrip(postId) {
  if(target) target.scrollIntoView({behavior:"smooth",block:"start"});
 }
 
+async function loadMyPass() {
+ const countText = document.getElementById("passCountText");
+ const progress = document.getElementById("passProgressBar");
+ const applyButton = document.getElementById("passApplyButton");
+ const note = document.getElementById("passApplyNote");
+ if(!countText || !token) return;
+ try {
+  const response = await fetch(API + "/users/me/pass", {
+   headers:{"Authorization":"Bearer " + token}
+  });
+  const result = await response.json();
+  if(!response.ok) throw new Error(result.message || "PASS लोड नहीं हुआ");
+  const count = Number(result.bestCount || 0);
+  const target = 5000;
+  countText.innerHTML = "<b>PASS BEST:</b> " + count.toLocaleString("en-IN");
+  if(progress) progress.style.width = Math.min(100, count / target * 100) + "%";
+  if(applyButton) applyButton.disabled = count < target || result.applicationStatus === "pending" || result.applicationStatus === "approved";
+  if(note) {
+   if(result.applicationStatus === "pending") note.textContent = "आपका Monetization आवेदन जाँच के लिए भेज दिया गया है।";
+   else if(result.applicationStatus === "approved") note.textContent = "आपका Monetization आवेदन स्वीकृत है।";
+   else if(count >= target) note.textContent = "आप 5,000 BEST पूरे कर चुके हैं। अब Apply कर सकते हैं।";
+   else note.textContent = "5,000 BEST पूरे होने पर Apply का विकल्प खुलेगा।";
+  }
+ } catch(error) {
+  countText.textContent = "PASS लोड नहीं हो सका: " + error.message;
+ }
+}
+
+async function applyForMonetization() {
+ const button = document.getElementById("passApplyButton");
+ const note = document.getElementById("passApplyNote");
+ if(!button || button.disabled) return;
+ button.disabled = true;
+ if(note) note.textContent = "आवेदन भेजा जा रहा है...";
+ try {
+  const response = await fetch(API + "/users/me/pass/apply", {
+   method:"POST",
+   headers:{"Authorization":"Bearer " + token}
+  });
+  const result = await response.json();
+  if(!response.ok) throw new Error(result.message || "आवेदन नहीं भेजा जा सका");
+  if(note) note.textContent = result.message || "आपका आवेदन भेज दिया गया है।";
+  await loadMyPass();
+ } catch(error) {
+  if(note) note.textContent = error.message;
+  button.disabled = false;
+ }
+}
+
 function showProfile() {
  const u = currentUser || {};
  document.getElementById("profileDisplayName").textContent = u.name || "Modd User";
@@ -920,6 +969,7 @@ function showProfile() {
  else photo.removeAttribute("src");
  renderProfileContent();
  renderProfileStrips();
+ loadMyPass();
 }
 
 async function openHome() {
@@ -1337,6 +1387,7 @@ async function giveBest(postId,button) {
 
   alert("आपका BEST सफलतापूर्वक जुड़ गया!");
   await loadFeed();
+  await loadMyPass();
 
   if(!document.getElementById("storeSection").classList.contains("hidden")) {
    await loadMyStore();
