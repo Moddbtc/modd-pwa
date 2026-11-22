@@ -57,33 +57,34 @@ button.following{background:#e8f7f5;color:#087f79;border:1px solid #bfe7e2}
 footer{text-align:center;color:#78918f;padding:25px;font-size:13px}
 hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
 
-/* BEST: 12 रंग लगातार बदलते रहेंगे */
-.best-wrap{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:45px}
+/* BEST: double-ring aqua badge */
+.best-wrap{display:inline-flex;align-items:center;justify-content:center;min-width:42px}
 .best-circle{
- width:23px;height:23px;border-radius:50%;
- background:#ff1744;
- animation:bestColors 12s linear infinite;
- box-shadow:0 0 9px currentColor;
+ width:34px;height:34px;border-radius:50%;display:inline-flex;
+ align-items:center;justify-content:center;position:relative;
+ background:linear-gradient(145deg,#eafffd,#12b8b0);
+ border:2px solid #12b8b0;color:#087f79;
+ box-shadow:0 2px 8px #12b8b044;
 }
-.best-label{font-size:10px;font-weight:bold;letter-spacing:.4px;color:#536967}
+.best-circle::before{content:"";position:absolute;inset:3px;border:2px solid #fff;border-radius:50%}
+.best-letter{position:relative;z-index:1;font-size:22px;line-height:1;font-weight:900;color:#087f79}
 .best-button{background:transparent!important;color:inherit!important;padding:3px 7px!important;display:inline-flex;align-items:center;gap:5px}
-.best-button:disabled{opacity:.65}
+.best-button:disabled{opacity:.8}
+.best-button.best-given .best-circle{background:#087f79;border-color:#087f79;box-shadow:0 0 0 3px #c9f3ef}
+.best-button.best-given .best-letter{color:#fff}
+.best-button.best-given .best-circle::before{border-color:#baf5ef}
 .best-count{font-size:13px;color:#78918f}
-@keyframes bestColors{
- 0%{background:#ff1744;box-shadow:0 0 9px #ff1744}
- 8.33%{background:#ff9100;box-shadow:0 0 9px #ff9100}
- 16.66%{background:#ffea00;box-shadow:0 0 9px #ffea00}
- 25%{background:#76ff03;box-shadow:0 0 9px #76ff03}
- 33.33%{background:#00e676;box-shadow:0 0 9px #00e676}
- 41.66%{background:#00e5ff;box-shadow:0 0 9px #00e5ff}
- 50%{background:#2979ff;box-shadow:0 0 9px #2979ff}
- 58.33%{background:#651fff;box-shadow:0 0 9px #651fff}
- 66.66%{background:#d500f9;box-shadow:0 0 9px #d500f9}
- 75%{background:#f50057;box-shadow:0 0 9px #f50057}
- 83.33%{background:#ff6d00;box-shadow:0 0 9px #ff6d00}
- 91.66%{background:#00bfa5;box-shadow:0 0 9px #00bfa5}
- 100%{background:#ff1744;box-shadow:0 0 9px #ff1744}
-}
+.profile-quick-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0}
+.profile-quick-nav button{min-width:0;padding:11px 5px;border:1px solid #c9eeea;background:linear-gradient(135deg,#efffff,#fff);color:#087f79}
+.profile-quick-nav button strong{display:block;font-size:16px}
+.profile-menu-panel,.pass-panel,.best-panel{display:none;background:#f8fefe;border:1px solid #ccece8;border-radius:14px;padding:13px;margin:10px 0}
+.profile-menu-panel.open,.pass-panel.open,.best-panel.open{display:block}
+.profile-menu-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.profile-menu-list button{text-align:left;background:#e8f8f6;color:#087f79;padding:11px}
+.pass-progress{height:10px;background:#dcefed;border-radius:20px;overflow:hidden;margin:10px 0}
+.pass-progress span{display:block;height:100%;width:0;background:#12b8b0}
+.profile-menu-panel h3,.pass-panel h3,.best-panel h3{margin:0 0 10px;color:#087f79}
+@media(max-width:360px){.profile-menu-list{grid-template-columns:1fr}}
 
 /* Reels swipe design */
 #reelsFeed{
@@ -346,6 +347,40 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
      </div>
      <p class="profile-bio" id="profileDisplayBio">अपनी दुनिया, अपनी पहचान।</p>
     </div>
+    <div class="profile-quick-nav" aria-label="Profile shortcuts">
+     <button type="button" onclick="toggleProfilePanel('pass')"><strong>PASS</strong><span>My PASS</span></button>
+     <button type="button" onclick="toggleProfilePanel('menu')"><strong>☰</strong><span>MENU</span></button>
+     <button type="button" onclick="toggleProfilePanel('best')"><strong>Ⓑ</strong><span>My BEST</span></button>
+    </div>
+    <div id="passPanel" class="pass-panel">
+     <h3>My PASS</h3>
+     <p class="muted">आपके चैनल को मिले सभी BEST यहाँ जमा होंगे। 5,000 BEST पूरे होने पर Monetization Apply का विकल्प खुलेगा।</p>
+     <p id="passCountText"><b>PASS BEST:</b> अभी सर्वर से कुल संख्या जोड़ना बाकी है।</p>
+     <div class="pass-progress" aria-label="Monetization progress"><span id="passProgressBar"></span></div>
+     <p class="muted">लक्ष्य: 5,000 BEST</p>
+     <button type="button" id="passApplyButton" disabled title="PASS की सर्वर गणना जुड़ने के बाद उपलब्ध होगा">Monetization Apply</button>
+     <p class="muted" id="passApplyNote">Apply का विकल्प 5,000 BEST पूरे होने पर खुलेगा।</p>
+    </div>
+    <div id="menuPanel" class="profile-menu-panel">
+     <h3>Modd MENU</h3>
+     <div class="profile-menu-list">
+      <button type="button" onclick="closeProfilePanels();showSection('homeSection',document.querySelector('.nav button:nth-child(1)'))">🏠 Home</button>
+      <button type="button" onclick="closeProfilePanels();showSection('storiesSection',document.querySelector('.nav button:nth-child(2)'))">⭕ Stories</button>
+      <button type="button" onclick="closeProfilePanels();showSection('videoSection',document.querySelector('.nav button:nth-child(3)'))">🎬 Video</button>
+      <button type="button" onclick="closeProfilePanels();showSection('reelsSection',document.querySelector('.nav button:nth-child(4)'))">▶ Reels</button>
+      <button type="button" onclick="closeProfilePanels();showSection('storeSection',document.querySelector('.nav button:nth-child(5)'))">📦 Store</button>
+      <button type="button" onclick="closeProfilePanels();showSection('findUserSection',document.querySelector('.nav button:nth-child(6)'))">🔎 Search</button>
+      <button type="button" onclick="closeProfilePanels();showMyConnections('followers')">👥 Followers</button>
+      <button type="button" onclick="closeProfilePanels();loadBlockedUsers()">🛡 Blocked Accounts</button>
+      <button type="button" onclick="closeProfilePanels();document.getElementById('profileForm').scrollIntoView({behavior:'smooth'})">⚙ Edit Profile</button>
+      <button type="button" onclick="logout()">↪ Logout</button>
+     </div>
+    </div>
+    <div id="bestPanel" class="best-panel">
+     <h3>My BEST</h3>
+     <p class="muted">आपके पोस्ट को मिले BEST और आपके दिए गए BEST का विवरण यहाँ दिखेगा।</p>
+     <p class="muted">इसका सही कुल आँकड़ा सर्वर से जोड़ने के अगले चरण में आएगा।</p>
+    </div>
     <div class="profile-toolbar">
      <button type="button" class="secondary" onclick="document.getElementById('photoFile').click()">📷 Camera</button>
      <button type="button" class="secondary" onclick="showSection('findUserSection',document.querySelector('.nav button:nth-child(6)'))">🔎 Search</button>
@@ -418,6 +453,22 @@ try {
  currentUser = JSON.parse(localStorage.getItem("modd_user") || "null");
 } catch(e) {
  currentUser = null;
+}
+
+function closeProfilePanels() {
+ ["passPanel","menuPanel","bestPanel"].forEach(id => {
+  const panel = document.getElementById(id);
+  if(panel) panel.classList.remove("open");
+ });
+}
+
+function toggleProfilePanel(name) {
+ const ids = {pass:"passPanel",menu:"menuPanel",best:"bestPanel"};
+ const target = document.getElementById(ids[name]);
+ if(!target) return;
+ const shouldOpen = !target.classList.contains("open");
+ closeProfilePanels();
+ if(shouldOpen) target.classList.add("open");
 }
 
 function safe(value) {
@@ -1094,12 +1145,11 @@ function renderBestButton(p) {
  else if(cooling) label = "72 घंटे की सीमा";
 
  return `
-  <button class="best-button" ${disabled ? "disabled" : ""}
+  <button class="best-button ${already ? "best-given" : ""}" ${disabled ? "disabled" : ""}
    onclick="giveBest('${safe(getPostId(p))}',this)"
    title="${safe(label)}">
    <span class="best-wrap">
-    <span class="best-circle"></span>
-    <span class="best-label">best</span>
+    <span class="best-circle"><span class="best-letter">B</span></span>
    </span>
    <span class="best-count">${count}</span>
   </button>
