@@ -47,6 +47,13 @@ button:disabled{opacity:.6;cursor:not-allowed}
 .profile-buttons{display:flex;gap:8px;flex-wrap:wrap}
 .upload-label{display:block;font-weight:bold;margin-top:12px}
 .empty{padding:20px;text-align:center;color:#78918f}
+.social-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:15px 0}
+.social-stat{background:linear-gradient(135deg,#effbf9,#fff);border:1px solid #dcefed;border-radius:13px;padding:12px;text-align:center}
+.social-stat b{display:block;font-size:22px;color:#087f79;margin-bottom:3px}
+.social-stat span{font-size:12px;color:#6b8582}
+.profile-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+button.danger{background:#fff0f0;color:#c03939;border:1px solid #f2cccc}
+button.following{background:#e8f7f5;color:#087f79;border:1px solid #bfe7e2}
 footer{text-align:center;color:#78918f;padding:25px;font-size:13px}
 hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
 
@@ -283,6 +290,11 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
      <button type="button" onclick="uploadProfilePhoto()">Upload Photo</button>
     </div>
     <p class="status muted" id="photoStatus"></p>
+    <div class="social-stats"><div class="social-stat"><b id="myFollowersCount">0</b><span>FOLLOWERS</span></div><div class="social-stat"><b id="myFollowingCount">0</b><span>FOLLOWING</span></div></div>
+    <hr>
+    <h2>🛡️ Blocked Accounts</h2>
+    <p class="muted">यहाँ से किसी भी Block किए गए अकाउंट को Unblock कर सकते हैं।</p>
+    <div id="blockedUsersList"><button type="button" class="secondary" onclick="loadBlockedUsers()">Blocked List देखें</button></div>
     <hr>
     <h2>Edit Profile</h2>
     <form id="profileForm">
@@ -501,130 +513,110 @@ function isFollowingUser(userId) {
 
 async function toggleFollowUser(userId) {
  const button = document.getElementById("searchedFollowBtn");
- const resultBox = document.getElementById("searchResult");
+ const wasFollowing = isFollowingUser(userId);
  if(!button || !userId) return;
  button.disabled = true;
- const wasFollowing = isFollowingUser(userId);
  button.textContent = "कृपया प्रतीक्षा करें...";
  try {
-  const response = await fetch(API + "/users/" + encodeURIComponent(userId) + "/follow", {
-   method: "POST",
-   headers: { "Authorization": "Bearer " + token }
-  });
+  const response = await fetch(API + "/users/" + encodeURIComponent(userId) + "/follow", { method:"POST", headers:{"Authorization":"Bearer "+token} });
   const result = await response.json();
   if(!response.ok) throw new Error(result.message || "Follow अपडेट नहीं हो सका।");
-
-  if(!currentUser) currentUser = {};
   if(!Array.isArray(currentUser.following)) currentUser.following = [];
   currentUser.following = currentUser.following.filter(item => String(item?._id || item?.id || item) !== String(userId));
   if(result.isFollowing) currentUser.following.push(userId);
   localStorage.setItem("modd_user", JSON.stringify(currentUser));
-
-  button.textContent = result.isFollowing ? "Following" : "Follow";
+  button.textContent = result.isFollowing ? "✓ Following · Unfollow" : "+ Follow";
+  button.classList.toggle("following", !!result.isFollowing);
   button.disabled = false;
-  const counts = resultBox.querySelectorAll(".actions b");
-  if(counts.length >= 1) {
-   counts[0].textContent = Number(result.followersCount || 0);
-  }
+  const followerCount = document.getElementById("searchedFollowersCount");
+  if(followerCount) followerCount.textContent = Number(result.followersCount || 0);
+  const followingCount = document.getElementById("myFollowingCount");
+  if(followingCount) followingCount.textContent = Number(result.followingCount || 0);
  } catch(error) {
-  button.textContent = wasFollowing ? "Following" : "Follow";
+  button.textContent = wasFollowing ? "✓ Following · Unfollow" : "+ Follow";
   button.disabled = false;
-  let errorBox = document.getElementById("followStatusMessage");
-  if(!errorBox) {
-   errorBox = document.createElement("p");
-   errorBox.id = "followStatusMessage";
-   errorBox.className = "muted";
-   button.insertAdjacentElement("afterend", errorBox);
-  }
-  errorBox.textContent = "Error: " + error.message;
+  let box = document.getElementById("followStatusMessage");
+  if(!box){ box=document.createElement("p"); box.id="followStatusMessage"; box.className="muted"; button.insertAdjacentElement("afterend",box); }
+  box.textContent = error.message;
  }
 }
 
- async function searchUser() {
+async function toggleBlockUser(userId) {
+ const button = document.getElementById("searchedBlockBtn");
+ if(!button || !userId) return;
+ const wasBlocked = button.dataset.blocked === "true";
+ const confirmText = wasBlocked ? "इस यूज़र को Unblock करें?" : "इस यूज़र को Block करने पर आप दोनों एक-दूसरे की Profile, Posts और Stories नहीं देख पाएँगे। क्या जारी रखें?";
+ if(!confirm(confirmText)) return;
+ button.disabled = true;
+ try {
+  const response = await fetch(API + "/users/" + encodeURIComponent(userId) + "/block", {method:"POST",headers:{"Authorization":"Bearer "+token}});
+  const result = await response.json();
+  if(!response.ok) throw new Error(result.message || "Block अपडेट नहीं हो सका।");
+  button.dataset.blocked = String(!!result.isBlocked);
+  if(result.isBlocked && Array.isArray(currentUser?.following)){ currentUser.following=currentUser.following.filter(item=>String(item?._id||item?.id||item)!==String(userId)); localStorage.setItem("modd_user",JSON.stringify(currentUser)); }
+  button.textContent = result.isBlocked ? "Unblock" : "Block User";
+  button.classList.toggle("danger", !result.isBlocked);
+  const follow = document.getElementById("searchedFollowBtn");
+  if(follow){ follow.disabled = !!result.isBlocked; follow.textContent = result.isBlocked ? "Blocked" : (isFollowingUser(userId) ? "✓ Following · Unfollow" : "+ Follow"); }
+  if(result.isBlocked) document.getElementById("searchedUserPosts").innerHTML = "<p class='empty'>यह यूज़र Block है। उसकी Posts अब आपको नहीं दिखेंगी।</p>";
+ } catch(error) { alert(error.message); }
+ finally { button.disabled = false; }
+}
+
+async function searchUser() {
  const input = document.getElementById("searchUsername");
  const resultBox = document.getElementById("searchResult");
  const username = input.value.trim().replace(/^@/, "");
-
- if(!username) {
-  resultBox.innerHTML = "<p class='muted'>कृपया Username लिखें।</p>";
-  return;
- }
-
- resultBox.innerHTML = "<p class='muted'>यूज़र खोजा जा रहा है...</p>";
-
+ if(!username){ resultBox.innerHTML="<p class='muted'>कृपया Username लिखें।</p>"; return; }
+ resultBox.innerHTML="<p class='muted'>यूज़र खोजा जा रहा है...</p>";
  try {
-  const response = await fetch(
-   API + "/users/" + encodeURIComponent(username),
-   {
-    headers: {
-     "Authorization": "Bearer " + token
-    }
-   }
-  );
-
+  const response = await fetch(API + "/users/" + encodeURIComponent(username), {headers:{"Authorization":"Bearer "+token}});
   const result = await response.json();
-
-  if(!response.ok) {
-   throw new Error(result.message || "यूज़र नहीं मिला।");
-  }
-
-  const user = result.profile || result.user || result;
-  const posts = result.posts || [];
-
-  if(!user || !user.username) {
-   throw new Error("यूज़र की जानकारी नहीं मिली।");
-  }
-
-  const myId = getMyId();
-  const userId = user.id || user._id || "";
-  const isMe = String(myId) === String(userId);
-
-  resultBox.innerHTML = `
-   <div class="card">
-    <div class="profile-top">
-     <img class="avatar"
-      src="${safe(user.profilePhoto || "")}"
-      alt="Profile Photo"
-      onerror="this.style.display='none'">
-     <div>
-      <b>${safe(user.name || "Modd User")}</b>
-      <p class="muted">@${safe(user.username)}</p>
-     </div>
-    </div>
-
-    <p>${safe(user.bio || "अभी कोई Bio नहीं है।")}</p>
-
-    <div class="actions">
-     <span>👥 Followers: <b>${Number(user.followersCount || 0)}</b></span>
-     <span>➡ Following: <b>${Number(user.followingCount || 0)}</b></span>
-    </div>
-
-    ${
-     isMe
-      ? "<p class='muted'>यह आपका अपना Profile है।</p>"
-      : `<button type="button" id="searchedFollowBtn" onclick="toggleFollowUser('${safe(userId)}')">${isFollowingUser(userId) ? "Following" : "Follow"}</button>`
-    }
-
-    <hr>
-    <h2>Posts</h2>
-    <div id="searchedUserPosts"></div>
-   </div>
-  `;
-
-  const postsBox = document.getElementById("searchedUserPosts");
-
-  if(!posts.length) {
-   postsBox.innerHTML = "<p class='empty'>इस यूज़र की अभी कोई पोस्ट नहीं है।</p>";
-  } else {
-   postsBox.innerHTML = posts.map(post => renderPost(post)).join("");
-  }
-
-
- } catch(error) {
-  resultBox.innerHTML =
-   `<p class="muted">Error: ${safe(error.message)}</p>`;
- }
+  if(!response.ok) throw new Error(result.message || "यूज़र नहीं मिला।");
+  const user=result.profile || result.user || result;
+  const posts=result.posts || [];
+  if(!user || !user.username) throw new Error("यूज़र की जानकारी नहीं मिली।");
+  const userId=user.id || user._id || "";
+  const isMe=String(getMyId())===String(userId);
+  const following=!!user.isFollowing || isFollowingUser(userId);
+  resultBox.innerHTML=`<div class="card">
+   <div class="profile-top"><img class="avatar" src="${safe(user.profilePhoto||"")}" alt="Profile Photo" onerror="this.style.display='none'"><div><b>${safe(user.name||"Modd User")}</b><p class="muted">@${safe(user.username)}</p></div></div>
+   <p>${safe(user.bio||"अभी कोई Bio नहीं है।")}</p>
+   <div class="social-stats"><div class="social-stat"><b id="searchedFollowersCount">${Number(user.followersCount||0)}</b><span>FOLLOWERS</span></div><div class="social-stat"><b id="searchedFollowingCount">${Number(user.followingCount||0)}</b><span>FOLLOWING</span></div></div>
+   ${isMe?"<p class='muted'>यह आपका अपना Profile है।</p>":`<div class="profile-actions"><button type="button" id="searchedFollowBtn" class="${following?'following':''}" onclick="toggleFollowUser('${safe(userId)}')">${following?'✓ Following · Unfollow':'+ Follow'}</button><button type="button" id="searchedBlockBtn" class="danger" data-blocked="false" onclick="toggleBlockUser('${safe(userId)}')">Block User</button></div>`}
+   <hr><h2>Posts</h2><div id="searchedUserPosts"></div></div>`;
+  const postsBox=document.getElementById("searchedUserPosts");
+  if(!posts.length) postsBox.innerHTML="<p class='empty'>इस यूज़र की अभी कोई पोस्ट नहीं है।</p>";
+  else postsBox.innerHTML=posts.map(post=>renderPost(post)).join("");
+ } catch(error) { resultBox.innerHTML=`<p class="muted">${safe(error.message)}</p>`; }
 }
+
+
+async function loadBlockedUsers() {
+ const box=document.getElementById("blockedUsersList");
+ if(!box) return;
+ box.innerHTML="<p class='muted'>लोड हो रहा है...</p>";
+ try {
+  const response=await fetch(API+"/users/me/blocked",{headers:{"Authorization":"Bearer "+token}});
+  const result=await response.json();
+  if(!response.ok) throw new Error(result.message||"Blocked list load नहीं हुई।");
+  const users=result.users||[];
+  if(!users.length){box.innerHTML="<p class='empty'>आपने अभी किसी को Block नहीं किया है।</p>";return;}
+  box.innerHTML=users.map(user=>`<div class="story-head" style="justify-content:space-between"><div style="display:flex;align-items:center;gap:10px"><img class="story-avatar" src="${safe(user.profilePhoto||"")}" onerror="this.style.display='none'"><div><b>${safe(user.name||"Modd User")}</b><div class="muted">@${safe(user.username||"")}</div></div></div><button class="secondary" onclick="unblockFromList('${safe(user._id)}',this)">Unblock</button></div>`).join("");
+ } catch(error){box.innerHTML=`<p class='muted'>${safe(error.message)}</p>`;}
+}
+
+async function unblockFromList(userId,button){
+ if(!confirm("इस अकाउंट को Unblock करें?")) return;
+ button.disabled=true;
+ try{
+  const response=await fetch(API+"/users/"+encodeURIComponent(userId)+"/block",{method:"POST",headers:{"Authorization":"Bearer "+token}});
+  const result=await response.json();
+  if(!response.ok) throw new Error(result.message||"Unblock नहीं हो सका।");
+  await loadBlockedUsers();
+ }catch(error){alert(error.message);button.disabled=false;}
+}
+
 async function loadCurrentUser() {
  const response = await fetch(API + "/users/me", {
   headers:{"Authorization":"Bearer " + token}
@@ -646,6 +638,8 @@ function showProfile() {
  document.getElementById("profileName").value = u.name || "";
  document.getElementById("profileUsername").value = u.username || "";
  document.getElementById("profileBio").value = u.bio || "";
+ const followersEl=document.getElementById("myFollowersCount"); if(followersEl) followersEl.textContent=(u.followers||[]).length;
+ const followingEl=document.getElementById("myFollowingCount"); if(followingEl) followingEl.textContent=(u.following||[]).length;
 
  const photo = document.getElementById("profilePreview");
  if(u.profilePhoto) photo.src = u.profilePhoto;
