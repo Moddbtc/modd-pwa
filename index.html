@@ -186,6 +186,26 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
 .search-user-card .avatar{width:76px;height:76px}
 .search-user-card .profile-actions button{flex:1}
 .search-post-grid{display:grid;grid-template-columns:1fr;gap:8px}
+/* Modd aqua profile layout */
+.profile-showcase{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-top:14px}
+.profile-stream{background:linear-gradient(135deg,#efffff,#fff);border:1px solid #bcefed;border-radius:18px;padding:12px;box-shadow:0 3px 12px #12b8b018}
+.profile-stream h3{margin:0 0 10px;color:#087f79;font-size:18px}
+.profile-stream-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.profile-tile{aspect-ratio:3/4;min-width:0;border:2px solid #72dcd6;border-radius:12px;overflow:hidden;background:#e8fbfa;position:relative}
+.profile-tile img,.profile-tile video{width:100%;height:100%;object-fit:cover;display:block}
+.profile-tile .tile-play{position:absolute;right:7px;bottom:7px;background:#087f79;color:white;border-radius:50%;padding:5px 8px}
+.profile-empty{padding:18px;text-align:center;color:#78918f;background:#f7fdfd;border-radius:12px;grid-column:1/-1}
+
+.profile-horizontal{display:flex;gap:10px;overflow-x:auto;padding:3px 2px 10px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.profile-horizontal::-webkit-scrollbar{height:5px}
+.profile-horizontal .profile-tile{flex:0 0 105px;width:105px;scroll-snap-align:start;cursor:pointer}
+.profile-strip-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.profile-strip-head h3{margin:0;color:#087f79;font-size:17px}
+.profile-strip-head button{padding:6px 10px;font-size:12px}
+.profile-toolbar{display:flex;justify-content:flex-end;gap:8px;margin:8px 0}
+.profile-toolbar button{padding:9px 12px}
+.profile-tab-panel{display:none}.profile-tab-panel.active{display:block}
+@media(min-width:700px){.profile-showcase{grid-template-columns:1fr 1fr}.profile-stream-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(min-width:520px){.search-post-grid{grid-template-columns:1fr 1fr}}
 
 </style>
@@ -326,6 +346,21 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
      </div>
      <p class="profile-bio" id="profileDisplayBio">अपनी दुनिया, अपनी पहचान।</p>
     </div>
+    <div class="profile-toolbar">
+     <button type="button" class="secondary" onclick="document.getElementById('photoFile').click()">📷 Camera</button>
+     <button type="button" class="secondary" onclick="showSection('findUserSection',document.querySelector('.nav button:nth-child(6)'))">🔎 Search</button>
+     <button type="button" onclick="showSection('homeSection',document.querySelector('.nav button:nth-child(1)'))">＋ Create</button>
+    </div>
+    <div class="profile-showcase" style="grid-template-columns:1fr">
+     <div class="profile-stream">
+      <div class="profile-strip-head"><h3>⭕ Stories</h3><button type="button" class="secondary" onclick="showSection('storiesSection',document.querySelector('.nav button:nth-child(2)'))">सभी देखें</button></div>
+      <div id="profileStoriesStrip" class="profile-horizontal"><p class="profile-empty">Stories लोड हो रही हैं...</p></div>
+     </div>
+     <div class="profile-stream">
+      <div class="profile-strip-head"><h3>▶ Reels</h3><button type="button" class="secondary" onclick="showSection('reelsSection',document.querySelector('.nav button:nth-child(4)'))">सभी देखें</button></div>
+      <div id="profileReelsStrip" class="profile-horizontal"><p class="profile-empty">Reels लोड हो रही हैं...</p></div>
+     </div>
+    </div>
     <label class="upload-label">Profile Photo चुनें</label>
     <input type="file" id="photoFile" accept="image/*">
     <div class="profile-buttons">
@@ -338,6 +373,14 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
      <button type="button" class="social-stat stat-button" onclick="showMyPosts()"><b id="myPostsCount">0</b><span>POSTS</span></button>
     </div>
     <div id="myProfileDetails" class="profile-panel hidden"></div>
+    <div class="profile-tabs" role="tablist" aria-label="Profile content">
+     <button type="button" class="active" id="profilePostsTab" onclick="showProfileTab('posts')">▦ Posts</button>
+     <button type="button" class="secondary" id="profileStoriesTab" onclick="showProfileTab('stories')">＋ Stories</button>
+     <button type="button" class="secondary" id="profileReelsTab" onclick="showProfileTab('reels')">▣ Reels</button>
+    </div>
+    <div id="profilePostsPanel" class="profile-tab-panel active"><div id="profilePostsGrid" class="profile-stream-grid"><p class="profile-empty">आपकी Posts यहाँ दिखाई देंगी।</p></div></div>
+    <div id="profileStoriesPanel" class="profile-tab-panel"><div class="profile-stream"><h3>＋ मेरी Stories</h3><p class="muted">अपनी Story पोस्ट करने के लिए नीचे बटन दबाएँ।</p><button type="button" onclick="showSection('storiesSection',document.querySelector('.nav button:nth-child(2)'))">Story पोस्ट करें</button><div id="profileStoriesGrid" class="profile-stream-grid" style="margin-top:12px"></div></div></div>
+    <div id="profileReelsPanel" class="profile-tab-panel"><div class="profile-stream"><h3>▣ मेरी Reels</h3><div id="profileReelsGrid" class="profile-stream-grid"></div><button type="button" class="secondary" onclick="showSection('videoSection',document.querySelector('.nav button:nth-child(3)'))">नई Reel अपलोड करें</button></div></div>
     <hr>
     <h2>🛡️ Blocked Accounts</h2>
     <p class="muted">यहाँ से किसी भी Block किए गए अकाउंट को Unblock कर सकते हैं।</p>
@@ -367,6 +410,7 @@ let mode = "login";
 let token = localStorage.getItem("modd_token") || "";
 let currentUser = null;
 let allPosts = [];
+let allStories = [];
 let reelsObserver = null;
 let storePosts = [];
 
@@ -748,6 +792,62 @@ async function loadCurrentUser() {
  showProfile();
 }
 
+function showProfileTab(tab) {
+ const names = ['posts','stories','reels'];
+ names.forEach(name => {
+  const panel=document.getElementById('profile'+name[0].toUpperCase()+name.slice(1)+'Panel');
+  const button=document.getElementById('profile'+name[0].toUpperCase()+name.slice(1)+'Tab');
+  if(panel) panel.classList.toggle('active',name===tab);
+  if(button){button.classList.toggle('active',name===tab);button.classList.toggle('secondary',name!==tab);}
+ });
+ if(tab==='stories') loadStories();
+}
+
+function renderProfileContent() {
+ const myId=String(getMyId());
+ const mine=(allPosts||[]).filter(post=>String(post.author?._id||post.author?.id||post.author||'')===myId);
+ const postsBox=document.getElementById('profilePostsGrid');
+ const reelsBox=document.getElementById('profileReelsGrid');
+ if(postsBox) postsBox.innerHTML=mine.filter(p=>!isVideoPost(p)).map(p=>`<div class="profile-tile">${postMedia(p).filter(m=>m.type==='image'&&m.url).slice(0,1).map(m=>`<img src="${safe(m.url)}" alt="Post">`).join('')||'<div class="profile-empty">Text Post</div>'}</div>`).join('')||'<p class="profile-empty">अभी कोई Photo Post नहीं है।</p>';
+ if(reelsBox) reelsBox.innerHTML=mine.filter(isVideoPost).map(p=>`<div class="profile-tile">${postMedia(p).filter(m=>m.type==='video'&&m.url).slice(0,1).map(m=>`<video src="${safe(m.url)}" muted playsinline></video>`).join('')}<span class="tile-play">▶</span></div>`).join('')||'<p class="profile-empty">अभी कोई Reel नहीं है।</p>';
+ const count=document.getElementById('myPostsCount'); if(count) count.textContent=mine.length;
+}
+
+
+function renderProfileStrips() {
+ const storyStrip=document.getElementById("profileStoriesStrip");
+ const reelStrip=document.getElementById("profileReelsStrip");
+ if(storyStrip) {
+  storyStrip.innerHTML=allStories.length ? allStories.map(story=>{
+   const author=story.author||{};
+   const media=story.mediaType==="video"
+    ? `<video src="${safe(story.mediaUrl)}" muted playsinline></video>`
+    : `<img src="${safe(story.mediaUrl)}" alt="Story">`;
+   return `<div class="profile-tile" role="button" tabindex="0" onclick="openStoryFromStrip('${safe(story._id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openStoryFromStrip('${safe(story._id)}')}">${media}<span class="tile-play">${safe(author.username ? "@"+author.username : author.name||"Story")}</span></div>`;
+  }).join("") : '<p class="profile-empty">अभी कोई Active Story नहीं है।</p>';
+ }
+ if(reelStrip) {
+  const videos=(allPosts||[]).filter(isVideoPost);
+  reelStrip.innerHTML=videos.length ? videos.map(post=>{
+   const media=postMedia(post).find(m=>m.type==="video"&&m.url);
+   return `<div class="profile-tile" role="button" tabindex="0" onclick="openReelFromStrip('${safe(getPostId(post))}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openReelFromStrip('${safe(getPostId(post))}')}"><video src="${safe(media.url)}" muted playsinline preload="metadata"></video><span class="tile-play">▶</span></div>`;
+  }).join("") : '<p class="profile-empty">अभी कोई Reel उपलब्ध नहीं है।</p>';
+ }
+}
+
+async function openStoryFromStrip(storyId) {
+ showSection("storiesSection",document.querySelector(".nav button:nth-child(2)"));
+ await loadStories();
+ const target=document.getElementById("story-"+storyId);
+ if(target) target.scrollIntoView({behavior:"smooth",block:"center"});
+}
+
+function openReelFromStrip(postId) {
+ showSection("reelsSection",document.querySelector(".nav button:nth-child(4)"));
+ const target=document.getElementById("reel-"+postId);
+ if(target) target.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
 function showProfile() {
  const u = currentUser || {};
  document.getElementById("profileDisplayName").textContent = u.name || "Modd User";
@@ -767,6 +867,8 @@ function showProfile() {
  const photo = document.getElementById("profilePreview");
  if(u.profilePhoto) photo.src = u.profilePhoto;
  else photo.removeAttribute("src");
+ renderProfileContent();
+ renderProfileStrips();
 }
 
 async function openHome() {
@@ -1046,7 +1148,7 @@ function renderPost(p,vertical=false,fromStore=false) {
 
  if(vertical) {
   return `
-   <div class="reel-card">
+   <div class="reel-card" id="reel-${safe(getPostId(p))}">
     <div class="reel-hint">↑ ↓ Swipe</div>
     ${mediaHTML}
     <div class="reel-overlay">
@@ -1418,6 +1520,13 @@ async function loadStories() {
   const result = await response.json();
   if(!response.ok) throw new Error(result.message || "Stories लोड नहीं हुईं।");
   const stories = result.stories || [];
+  allStories = stories;
+  renderProfileStrips();
+  const profileStories=document.getElementById("profileStoriesGrid");
+  if(profileStories){
+   const mine=stories.filter(story=>storyAuthorId(story)===String(getMyId()));
+   profileStories.innerHTML=mine.map(story=>`<div class="profile-tile">${story.mediaType==='video'?`<video src="${safe(story.mediaUrl)}" muted playsinline></video><span class="tile-play">▶</span>`:`<img src="${safe(story.mediaUrl)}" alt="My Story">`}</div>`).join("")||'<p class="profile-empty">अभी कोई Active Story नहीं है।</p>';
+  }
   if(!stories.length) {
    box.innerHTML = "<p class='empty'>अभी कोई Active Story नहीं है। पहली Story आप लगाइए!</p>";
    return;
@@ -1435,7 +1544,7 @@ async function loadStories() {
    const viewersCount = Array.isArray(story.viewers) ? story.viewers.length : 0;
    const likesCount = Array.isArray(story.likes) ? story.likes.length : 0;
    return `
-    <article class="story-item">
+    <article class="story-item" id="story-${safe(story._id)}">
      <div class="story-head">
       <img class="story-avatar" src="${safe(author.profilePhoto || "")}" alt=""
        onerror="this.style.display='none'">
