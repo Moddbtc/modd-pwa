@@ -156,6 +156,38 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
 .story-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
 .story-actions button{padding:9px 11px;font-size:13px}
 
+
+/* Professional Profile & Search */
+.profile-hero{background:linear-gradient(135deg,#e5fbf8,#f7fffe);border:1px solid #d7efec;border-radius:18px;padding:16px;margin:12px 0}
+.profile-hero .profile-top{margin:0}
+.profile-hero .avatar{width:92px;height:92px}
+.profile-identity{min-width:0}
+.profile-identity b{font-size:19px;display:block;overflow-wrap:anywhere}
+.profile-bio{margin:12px 0 4px;line-height:1.5;color:#496563}
+.stat-button{font:inherit;cursor:pointer;width:100%;border:1px solid #dcefed;background:linear-gradient(135deg,#effbf9,#fff);color:#183b3a}
+.stat-button:active{transform:scale(.98)}
+.profile-panel{background:#fbfefe;border:1px solid #e3f0ee;border-radius:14px;padding:13px;margin:12px 0}
+.profile-panel h3{margin:0 0 10px;color:#087f79;font-size:16px}
+.connection-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #edf3f2}
+.connection-row:last-child{border-bottom:0}
+.connection-person{display:flex;align-items:center;gap:10px;min-width:0}
+.connection-person img{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#e5f7f5}
+.connection-person div{min-width:0;overflow-wrap:anywhere}
+.connection-person b{display:block}
+.profile-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}
+.profile-tabs button{flex:1;min-width:95px}
+.search-hero{background:linear-gradient(135deg,#e8fbf8,#fff);border:1px solid #d8efec;border-radius:16px;padding:15px;margin-bottom:12px}
+.search-line{display:flex;gap:8px;align-items:center}
+.search-line input{min-width:0;margin:0;flex:1}
+.search-line button{white-space:nowrap}
+.search-hint{margin:8px 2px 0}
+.search-user-card{border:1px solid #e1efed;border-radius:16px;padding:15px;background:#fff}
+.search-user-card .profile-top{align-items:center}
+.search-user-card .avatar{width:76px;height:76px}
+.search-user-card .profile-actions button{flex:1}
+.search-post-grid{display:grid;grid-template-columns:1fr;gap:8px}
+@media(min-width:520px){.search-post-grid{grid-template-columns:1fr 1fr}}
+
 </style>
 </head>
 
@@ -196,10 +228,16 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
 
   <div id="findUserSection" class="hidden">
    <div class="card">
-    <h2>🔎 Search User</h2>
-    <input type="text" id="searchUsername" placeholder="Username लिखें">
-    <button onclick="searchUser()">Search</button>
-    <div id="searchResult"></div>
+    <div class="search-hero">
+     <h2>🔎 Modd पर लोगों को खोजें</h2>
+     <p class="muted">Username से अपने दोस्तों और दूसरे Modd Users को खोजें।</p>
+     <div class="search-line">
+      <input type="search" id="searchUsername" placeholder="@username लिखें" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();searchUser();}">
+      <button type="button" onclick="searchUser()">Search</button>
+     </div>
+     <p class="muted search-hint">उदाहरण: modd_user</p>
+    </div>
+    <div id="searchResult"><p class="empty">किसी यूज़र को खोजने के लिए ऊपर Username लिखें।</p></div>
    </div>
   </div>
 
@@ -277,12 +315,16 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
   <div id="profileSection" class="hidden">
    <div class="card">
     <h2>My Profile 👤</h2>
-    <div class="profile-top">
-     <img id="profilePreview" class="avatar" alt="Profile Photo">
-     <div>
-      <b id="profileDisplayName">Modd User</b>
-      <p class="muted" id="profileDisplayUsername"></p>
+    <div class="profile-hero">
+     <div class="profile-top">
+      <img id="profilePreview" class="avatar" alt="Profile Photo">
+      <div class="profile-identity">
+       <b id="profileDisplayName">Modd User</b>
+       <p class="muted" id="profileDisplayUsername"></p>
+       <span class="muted">Modd Member</span>
+      </div>
      </div>
+     <p class="profile-bio" id="profileDisplayBio">अपनी दुनिया, अपनी पहचान।</p>
     </div>
     <label class="upload-label">Profile Photo चुनें</label>
     <input type="file" id="photoFile" accept="image/*">
@@ -290,7 +332,12 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
      <button type="button" onclick="uploadProfilePhoto()">Upload Photo</button>
     </div>
     <p class="status muted" id="photoStatus"></p>
-    <div class="social-stats"><div class="social-stat"><b id="myFollowersCount">0</b><span>FOLLOWERS</span></div><div class="social-stat"><b id="myFollowingCount">0</b><span>FOLLOWING</span></div></div>
+    <div class="social-stats">
+     <button type="button" class="social-stat stat-button" onclick="showMyConnections('followers')"><b id="myFollowersCount">0</b><span>FOLLOWERS</span></button>
+     <button type="button" class="social-stat stat-button" onclick="showMyConnections('following')"><b id="myFollowingCount">0</b><span>FOLLOWING</span></button>
+     <button type="button" class="social-stat stat-button" onclick="showMyPosts()"><b id="myPostsCount">0</b><span>POSTS</span></button>
+    </div>
+    <div id="myProfileDetails" class="profile-panel hidden"></div>
     <hr>
     <h2>🛡️ Blocked Accounts</h2>
     <p class="muted">यहाँ से किसी भी Block किए गए अकाउंट को Unblock कर सकते हैं।</p>
@@ -566,31 +613,103 @@ async function toggleBlockUser(userId) {
 async function searchUser() {
  const input = document.getElementById("searchUsername");
  const resultBox = document.getElementById("searchResult");
- const username = input.value.trim().replace(/^@/, "");
- if(!username){ resultBox.innerHTML="<p class='muted'>कृपया Username लिखें।</p>"; return; }
- resultBox.innerHTML="<p class='muted'>यूज़र खोजा जा रहा है...</p>";
+ const username = input.value.trim().replace(/^@/, "").toLowerCase();
+ if(!username) {
+  resultBox.innerHTML = "<p class='muted'>कृपया Username लिखें।</p>";
+  input.focus();
+  return;
+ }
+ resultBox.innerHTML = "<div class='search-user-card'><p class='muted'>यूज़र खोजा जा रहा है...</p></div>";
  try {
-  const response = await fetch(API + "/users/" + encodeURIComponent(username), {headers:{"Authorization":"Bearer "+token}});
+  const [response, blockedResponse] = await Promise.all([
+   fetch(API + "/users/" + encodeURIComponent(username), {headers:{"Authorization":"Bearer "+token}}),
+   fetch(API + "/users/me/blocked", {headers:{"Authorization":"Bearer "+token}})
+  ]);
   const result = await response.json();
   if(!response.ok) throw new Error(result.message || "यूज़र नहीं मिला।");
-  const user=result.profile || result.user || result;
-  const posts=result.posts || [];
+  const user = result.profile || result.user || result;
+  const posts = result.posts || [];
   if(!user || !user.username) throw new Error("यूज़र की जानकारी नहीं मिली।");
-  const userId=user.id || user._id || "";
-  const isMe=String(getMyId())===String(userId);
-  const following=!!user.isFollowing || isFollowingUser(userId);
-  resultBox.innerHTML=`<div class="card">
-   <div class="profile-top"><img class="avatar" src="${safe(user.profilePhoto||"")}" alt="Profile Photo" onerror="this.style.display='none'"><div><b>${safe(user.name||"Modd User")}</b><p class="muted">@${safe(user.username)}</p></div></div>
-   <p>${safe(user.bio||"अभी कोई Bio नहीं है।")}</p>
-   <div class="social-stats"><div class="social-stat"><b id="searchedFollowersCount">${Number(user.followersCount||0)}</b><span>FOLLOWERS</span></div><div class="social-stat"><b id="searchedFollowingCount">${Number(user.followingCount||0)}</b><span>FOLLOWING</span></div></div>
-   ${isMe?"<p class='muted'>यह आपका अपना Profile है।</p>":`<div class="profile-actions"><button type="button" id="searchedFollowBtn" class="${following?'following':''}" onclick="toggleFollowUser('${safe(userId)}')">${following?'✓ Following · Unfollow':'+ Follow'}</button><button type="button" id="searchedBlockBtn" class="danger" data-blocked="false" onclick="toggleBlockUser('${safe(userId)}')">Block User</button></div>`}
-   <hr><h2>Posts</h2><div id="searchedUserPosts"></div></div>`;
-  const postsBox=document.getElementById("searchedUserPosts");
-  if(!posts.length) postsBox.innerHTML="<p class='empty'>इस यूज़र की अभी कोई पोस्ट नहीं है।</p>";
-  else postsBox.innerHTML=posts.map(post=>renderPost(post)).join("");
- } catch(error) { resultBox.innerHTML=`<p class="muted">${safe(error.message)}</p>`; }
+  const userId = user.id || user._id || "";
+  const isMe = String(getMyId()) === String(userId);
+  const following = !!user.isFollowing || isFollowingUser(userId);
+  let blocked = false;
+  if(blockedResponse.ok) {
+   const blockedData = await blockedResponse.json();
+   blocked = (blockedData.users || []).some(item => String(item._id || item.id) === String(userId));
+  }
+  resultBox.innerHTML = `<div class="search-user-card">
+   <div class="profile-top">
+    <img class="avatar" src="${safe(user.profilePhoto||"")}" alt="Profile Photo" onerror="this.style.display='none'">
+    <div class="profile-identity"><b>${safe(user.name||"Modd User")}</b><p class="muted">@${safe(user.username)}</p></div>
+   </div>
+   <p class="profile-bio">${safe(user.bio||"अभी कोई Bio नहीं है।")}</p>
+   <div class="social-stats">
+    <div class="social-stat"><b id="searchedFollowersCount">${Number(user.followersCount||0)}</b><span>FOLLOWERS</span></div>
+    <div class="social-stat"><b id="searchedFollowingCount">${Number(user.followingCount||0)}</b><span>FOLLOWING</span></div>
+    <div class="social-stat"><b>${posts.length}</b><span>POSTS</span></div>
+   </div>
+   ${isMe ? "<p class='muted'>यह आपका अपना Profile है।</p>" : `<div class="profile-actions">
+    <button type="button" id="searchedFollowBtn" class="${following?'following':''}" ${blocked?'disabled':''} onclick="toggleFollowUser('${safe(userId)}')">${blocked?'Blocked':following?'✓ Following · Unfollow':'+ Follow'}</button>
+    <button type="button" id="searchedBlockBtn" class="danger" data-blocked="${blocked}" onclick="toggleBlockUser('${safe(userId)}')">${blocked?'Unblock':'Block User'}</button>
+   </div>`}
+   <hr><h2>Posts</h2><div id="searchedUserPosts"></div>
+  </div>`;
+  const postsBox = document.getElementById("searchedUserPosts");
+  if(blocked) postsBox.innerHTML = "<p class='empty'>आपने इस यूज़र को Block किया हुआ है। Unblock करने के बाद उसकी Posts देख सकेंगे।</p>";
+  else if(!posts.length) postsBox.innerHTML = "<p class='empty'>इस यूज़र की अभी कोई पोस्ट नहीं है।</p>";
+  else postsBox.innerHTML = posts.map(post => renderPost(post)).join("");
+ } catch(error) {
+  resultBox.innerHTML = `<div class="search-user-card"><p class="muted">${safe(error.message)}</p></div>`;
+ }
 }
 
+function connectionRow(user) {
+ const photo = user.profilePhoto || "";
+ const username = user.username || "";
+ return `<div class="connection-row">
+  <div class="connection-person">
+   <img src="${safe(photo)}" alt="" onerror="this.style.display='none'">
+   <div><b>${safe(user.name || "Modd User")}</b><span class="muted">@${safe(username)}</span></div>
+  </div>
+  ${username ? `<button type="button" class="secondary" onclick="openSearchedUser('${safe(username)}')">Profile</button>` : ""}
+ </div>`;
+}
+
+async function openSearchedUser(username) {
+ showSection("findUserSection", document.querySelector(".nav button:nth-child(6)"));
+ document.getElementById("searchUsername").value = username;
+ await searchUser();
+}
+
+async function showMyConnections(type) {
+ const box = document.getElementById("myProfileDetails");
+ if(!box) return;
+ const isFollowers = type === "followers";
+ const title = isFollowers ? "Followers" : "Following";
+ box.classList.remove("hidden");
+ box.innerHTML = `<h3>${title}</h3><p class="muted">सूची लोड हो रही है...</p>`;
+ try {
+  const response = await fetch(API + "/users/me/" + type, {headers:{"Authorization":"Bearer "+token}});
+  const result = await response.json();
+  if(!response.ok) throw new Error(result.message || title + " लोड नहीं हो सके।");
+  const users = result.users || [];
+  box.innerHTML = `<h3>${title} (${Number(result.count || users.length)})</h3>` +
+   (users.length ? users.map(connectionRow).join("") : `<p class="empty">अभी कोई ${title} नहीं हैं।</p>`);
+ } catch(error) {
+  box.innerHTML = `<h3>${title}</h3><p class="muted">${safe(error.message)}</p>`;
+ }
+}
+
+function showMyPosts() {
+ const box = document.getElementById("myProfileDetails");
+ if(!box) return;
+ box.classList.remove("hidden");
+ const myId = String(getMyId());
+ const posts = (allPosts || []).filter(post => String(post.author?._id || post.author?.id || post.author || "") === myId);
+ box.innerHTML = `<h3>मेरी Posts (${posts.length})</h3>` +
+  (posts.length ? posts.map(post => renderPost(post)).join("") : "<p class='empty'>आपने अभी कोई Post शेयर नहीं की है।</p>");
+}
 
 async function loadBlockedUsers() {
  const box=document.getElementById("blockedUsersList");
@@ -634,12 +753,16 @@ function showProfile() {
  document.getElementById("profileDisplayName").textContent = u.name || "Modd User";
  document.getElementById("profileDisplayUsername").textContent =
   u.username ? "@" + u.username : "";
+ const bioDisplay = document.getElementById("profileDisplayBio");
+ if(bioDisplay) bioDisplay.textContent = u.bio || "अपनी दुनिया, अपनी पहचान।";
 
  document.getElementById("profileName").value = u.name || "";
  document.getElementById("profileUsername").value = u.username || "";
  document.getElementById("profileBio").value = u.bio || "";
  const followersEl=document.getElementById("myFollowersCount"); if(followersEl) followersEl.textContent=(u.followers||[]).length;
  const followingEl=document.getElementById("myFollowingCount"); if(followingEl) followingEl.textContent=(u.following||[]).length;
+ const postsEl=document.getElementById("myPostsCount");
+ if(postsEl) postsEl.textContent=(allPosts||[]).filter(post=>String(post.author?._id||post.author?.id||post.author||"")===String(getMyId())).length;
 
  const photo = document.getElementById("profilePreview");
  if(u.profilePhoto) photo.src = u.profilePhoto;
@@ -1093,6 +1216,7 @@ async function loadFeed() {
 
   renderVideos();
   renderReels();
+  if(currentUser) showProfile();
  } catch(error) {
   feed.innerHTML = `<p class="muted">${safe(error.message)}</p>`;
  }
