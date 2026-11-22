@@ -556,10 +556,7 @@ function showSection(sectionId,button) {
     ${
      isMe
       ? "<p class='muted'>यह आपका अपना Profile है।</p>"
-      : `<button id="followUserBtn"
-          onclick="toggleFollowUser('${safe(userId)}',this)">
-          Follow करें
-        </button>`
+      : "<p class='muted'>Follow सुविधा जल्द शुरू होगी।</p>"
     }
 
     <hr>
@@ -576,9 +573,6 @@ function showSection(sectionId,button) {
    postsBox.innerHTML = posts.map(post => renderPost(post)).join("");
   }
 
-  if(!isMe) {
-   await checkFollowStatus(userId);
-  }
 
  } catch(error) {
   resultBox.innerHTML =
