@@ -494,6 +494,52 @@ function showSection(sectionId,button) {
  if(sectionId === "storiesSection") loadStories();
 }
 
+function isFollowingUser(userId) {
+ const following = Array.isArray(currentUser?.following) ? currentUser.following : [];
+ return following.some(item => String(item?._id || item?.id || item) === String(userId));
+}
+
+async function toggleFollowUser(userId) {
+ const button = document.getElementById("searchedFollowBtn");
+ const resultBox = document.getElementById("searchResult");
+ if(!button || !userId) return;
+ button.disabled = true;
+ const wasFollowing = isFollowingUser(userId);
+ button.textContent = "कृपया प्रतीक्षा करें...";
+ try {
+  const response = await fetch(API + "/users/" + encodeURIComponent(userId) + "/follow", {
+   method: "POST",
+   headers: { "Authorization": "Bearer " + token }
+  });
+  const result = await response.json();
+  if(!response.ok) throw new Error(result.message || "Follow अपडेट नहीं हो सका।");
+
+  if(!currentUser) currentUser = {};
+  if(!Array.isArray(currentUser.following)) currentUser.following = [];
+  currentUser.following = currentUser.following.filter(item => String(item?._id || item?.id || item) !== String(userId));
+  if(result.isFollowing) currentUser.following.push(userId);
+  localStorage.setItem("modd_user", JSON.stringify(currentUser));
+
+  button.textContent = result.isFollowing ? "Following" : "Follow";
+  button.disabled = false;
+  const counts = resultBox.querySelectorAll(".actions b");
+  if(counts.length >= 1) {
+   counts[0].textContent = Number(result.followersCount || 0);
+  }
+ } catch(error) {
+  button.textContent = wasFollowing ? "Following" : "Follow";
+  button.disabled = false;
+  let errorBox = document.getElementById("followStatusMessage");
+  if(!errorBox) {
+   errorBox = document.createElement("p");
+   errorBox.id = "followStatusMessage";
+   errorBox.className = "muted";
+   button.insertAdjacentElement("afterend", errorBox);
+  }
+  errorBox.textContent = "Error: " + error.message;
+ }
+}
+
  async function searchUser() {
  const input = document.getElementById("searchUsername");
  const resultBox = document.getElementById("searchResult");
@@ -556,7 +602,7 @@ function showSection(sectionId,button) {
     ${
      isMe
       ? "<p class='muted'>यह आपका अपना Profile है।</p>"
-      : "<p class='muted'>Follow सुविधा जल्द शुरू होगी।</p>"
+      : `<button type="button" id="searchedFollowBtn" onclick="toggleFollowUser('${safe(userId)}')">${isFollowingUser(userId) ? "Following" : "Follow"}</button>`
     }
 
     <hr>
