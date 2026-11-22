@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -391,7 +392,7 @@ document.getElementById("authForm").addEventListener("submit", async e => {
  }
 
  try {
-  const response = await fetch(API + "/auth/" + mode, {
+  const response = await fetch(API + (mode === "signup" ? "/auth/register" : "/auth/login"), {
    method:"POST",
    headers:{"Content-Type":"application/json"},
    body:JSON.stringify(data)
