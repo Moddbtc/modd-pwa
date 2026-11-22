@@ -84,6 +84,9 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
 .pass-progress{height:10px;background:#dcefed;border-radius:20px;overflow:hidden;margin:10px 0}
 .pass-progress span{display:block;height:100%;width:0;background:#12b8b0}
 .profile-menu-panel h3,.pass-panel h3,.best-panel h3{margin:0 0 10px;color:#087f79}
+.menu-extra-panel{display:none;background:#f8fefe;border:1px solid #ccece8;border-radius:14px;padding:14px;margin:10px 0}
+.menu-extra-panel.open{display:block}.menu-extra-panel label{display:flex;align-items:center;gap:9px;margin:12px 0;font-size:14px}.menu-extra-panel input[type=checkbox]{width:auto;margin:0}.menu-extra-panel .menu-action{width:100%;text-align:left;margin:4px 0;background:#e8f8f6;color:#087f79}
+body.modd-dark{background:#102321;color:#e8f5f3}body.modd-dark .card,body.modd-dark .menu-extra-panel,body.modd-dark .profile-menu-panel{background:#193330;color:#e8f5f3;border-color:#315b56}body.modd-dark input,body.modd-dark textarea{background:#102321;color:#e8f5f3;border-color:#42635f}body.modd-dark .muted{color:#a6c4bf}
 @media(max-width:360px){.profile-menu-list{grid-template-columns:1fr}}
 
 /* Reels swipe design */
@@ -372,9 +375,35 @@ hr{border:0;border-top:1px solid #edf3f2;margin:18px 0}
       <button type="button" onclick="closeProfilePanels();showSection('findUserSection',document.querySelector('.nav button:nth-child(6)'))">🔎 Search</button>
       <button type="button" onclick="closeProfilePanels();showMyConnections('followers')">👥 Followers</button>
       <button type="button" onclick="closeProfilePanels();loadBlockedUsers()">🛡 Blocked Accounts</button>
-      <button type="button" onclick="closeProfilePanels();document.getElementById('profileForm').scrollIntoView({behavior:'smooth'})">⚙ Edit Profile</button>
+      <button type="button" onclick="openMenuExtra('notifications')">🔔 Notifications</button>
+      <button type="button" onclick="openMenuExtra('settings')">⚙ Settings</button>
+      <button type="button" onclick="openMenuExtra('help')">❓ Help & Support</button>
+      <button type="button" onclick="closeProfilePanels();document.getElementById('profileForm').scrollIntoView({behavior:'smooth'})">✏ Edit Profile</button>
       <button type="button" onclick="logout()">↪ Logout</button>
      </div>
+    </div>
+    <div id="menuNotificationsPanel" class="menu-extra-panel">
+     <h3>🔔 Notifications</h3>
+     <p class="muted">आपकी Notifications यहाँ दिखाई देंगी। फिलहाल इस ऐप के मौजूदा Backend में Notifications सेवा जुड़ी हुई नहीं है।</p>
+     <div class="empty">अभी कोई Notification उपलब्ध नहीं है।</div>
+     <button type="button" class="secondary" onclick="closeMenuExtras()">बंद करें</button>
+    </div>
+    <div id="menuSettingsPanel" class="menu-extra-panel">
+     <h3>⚙ Settings</h3>
+     <label><input type="checkbox" id="moddDarkMode" onchange="saveModdSettings()"> Dark Mode</label>
+     <label><input type="checkbox" id="moddNotifyPreference" onchange="saveModdSettings()"> Notifications की पसंद याद रखें</label>
+     <p class="muted">ये सेटिंग्स इसी डिवाइस पर सेव होंगी। Notifications की पसंद सेव करना वास्तविक Push Notifications चालू नहीं करता।</p>
+     <button type="button" class="secondary" onclick="closeMenuExtras()">बंद करें</button>
+    </div>
+    <div id="menuHelpPanel" class="menu-extra-panel">
+     <h3>❓ Help & Support</h3>
+     <b>Modd कैसे इस्तेमाल करें?</b>
+     <p class="muted">Home में Posts देखें, Stories और Reels शेयर करें, Search से यूज़र खोजें और Profile से अपनी जानकारी संभालें।</p>
+     <b>PASS और BEST क्या हैं?</b>
+     <p class="muted">BEST देने की सुविधा Posts पर है। PASS में आपके चैनल को मिले BEST का कुल आँकड़ा दिखता है।</p>
+     <b>अकाउंट सुरक्षा</b>
+     <p class="muted">अपना Password किसी के साथ साझा न करें। अनचाहे अकाउंट को Block कर सकते हैं।</p>
+     <button type="button" class="secondary" onclick="closeMenuExtras()">बंद करें</button>
     </div>
     <div id="bestPanel" class="best-panel">
      <h3>BEST</h3>
@@ -450,6 +479,11 @@ let reelsObserver = null;
 let storePosts = [];
 
 try {
+ const savedModdSettings = JSON.parse(localStorage.getItem("modd_settings") || "{}");
+ if(savedModdSettings.darkMode) document.body.classList.add("modd-dark");
+} catch(e) {}
+
+try {
  currentUser = JSON.parse(localStorage.getItem("modd_user") || "null");
 } catch(e) {
  currentUser = null;
@@ -469,6 +503,40 @@ function toggleProfilePanel(name) {
  const shouldOpen = !target.classList.contains("open");
  closeProfilePanels();
  if(shouldOpen) target.classList.add("open");
+}
+
+function openMenuExtra(name) {
+ closeProfilePanels();
+ const ids = {notifications:"menuNotificationsPanel",settings:"menuSettingsPanel",help:"menuHelpPanel"};
+ const panel = document.getElementById(ids[name]);
+ if(!panel) return;
+ panel.classList.add("open");
+ if(name === "settings") loadModdSettings();
+}
+
+function closeMenuExtras() {
+ ["menuNotificationsPanel","menuSettingsPanel","menuHelpPanel"].forEach(id => {
+  const panel = document.getElementById(id);
+  if(panel) panel.classList.remove("open");
+ });
+}
+
+function loadModdSettings() {
+ const settings = JSON.parse(localStorage.getItem("modd_settings") || "{}");
+ const dark = document.getElementById("moddDarkMode");
+ const notify = document.getElementById("moddNotifyPreference");
+ if(dark) dark.checked = !!settings.darkMode;
+ if(notify) notify.checked = !!settings.notifyPreference;
+ document.body.classList.toggle("modd-dark", !!settings.darkMode);
+}
+
+function saveModdSettings() {
+ const settings = {
+  darkMode: !!document.getElementById("moddDarkMode")?.checked,
+  notifyPreference: !!document.getElementById("moddNotifyPreference")?.checked
+ };
+ localStorage.setItem("modd_settings", JSON.stringify(settings));
+ document.body.classList.toggle("modd-dark", settings.darkMode);
 }
 
 function safe(value) {
