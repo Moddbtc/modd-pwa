@@ -403,6 +403,38 @@ body.modd-dark{background:#102321;color:#e8f5f3}body.modd-dark .card,body.modd-d
      <p class="muted">BEST देने की सुविधा Posts पर है। PASS में आपके चैनल को मिले BEST का कुल आँकड़ा दिखता है।</p>
      <b>अकाउंट सुरक्षा</b>
      <p class="muted">अपना Password किसी के साथ साझा न करें। अनचाहे अकाउंट को Block कर सकते हैं।</p>
+     <hr>
+     <h3>अपनी समस्या Admin को भेजें</h3>
+     <input id="supportSubject" maxlength="100" placeholder="समस्या का विषय">
+     <textarea id="supportMessage" maxlength="2000" placeholder="अपनी समस्या यहाँ लिखें"></textarea>
+     <button type="button" onclick="sendSupportTicket()">समस्या भेजें</button>
+     <div id="supportStatus" class="muted"></div>
+     <div id="mySupportTickets"></div>
+     <hr>
+     <details><summary>Admin Login / First Setup</summary>
+      <p class="muted">पहली बार Admin बनाने के लिए Render में ADMIN_EMAIL और ADMIN_SETUP_SECRET सेट होना जरूरी है। Setup Secret किसी से साझा न करें।</p>
+      <input id="adminSetupUsername" placeholder="Admin username">
+      <input id="adminSetupPhone" placeholder="Admin phone number">
+      <input id="adminSetupPassword" type="password" placeholder="Admin password (10+ characters)">
+      <input id="adminSetupSecret" type="password" placeholder="Admin setup secret">
+      <button type="button" onclick="setupModdAdmin()">Create Admin Account</button>
+      <hr>
+      <input id="adminLoginUsername" placeholder="Admin username">
+      <input id="adminLoginPassword" type="password" placeholder="Admin password">
+      <button type="button" onclick="loginModdAdmin()">Admin Login</button>
+      <div id="adminStatus" class="muted"></div>
+     </details>
+     <section id="moddAdminPanel" class="hidden">
+      <h3>Modd Admin Panel</h3>
+      <button type="button" class="secondary" onclick="loadAdminTickets()">Refresh Support Requests</button>
+      <div id="adminTickets"></div>
+      <hr><h4>App Options</h4>
+      <input id="newFeatureKey" placeholder="Option key (example: new-section)">
+      <input id="newFeatureLabel" placeholder="Option name">
+      <button type="button" onclick="addAdminFeature()">Add Option</button>
+      <div id="adminFeatures"></div>
+      <button type="button" class="danger" onclick="adminLogout()">Admin Logout</button>
+     </section>
      <button type="button" class="secondary" onclick="closeMenuExtras()">बंद करें</button>
     </div>
     <div id="bestPanel" class="best-panel">
@@ -472,6 +504,7 @@ const API = "https://modd-social-app.onrender.com/api";
 
 let mode = "login";
 let token = localStorage.getItem("modd_token") || "";
+let adminToken = sessionStorage.getItem("modd_admin_token") || "";
 let currentUser = null;
 let allPosts = [];
 let allStories = [];
@@ -1846,6 +1879,29 @@ if("serviceWorker" in navigator) {
    .catch(error => console.log("Service Worker Error:",error));
  });
 }
+
+
+async function sendSupportTicket(){
+ const subject=document.getElementById("supportSubject").value.trim();
+ const message=document.getElementById("supportMessage").value.trim();
+ const status=document.getElementById("supportStatus");
+ if(!token){status.textContent="समस्या भेजने के लिए पहले सामान्य अकाउंट में Login करें।";return;}
+ if(!subject||!message){status.textContent="विषय और समस्या दोनों लिखें।";return;}
+ try{const r=await fetch(API+"/support",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({subject,message})});const d=await r.json();if(!r.ok)throw new Error(d.message);status.textContent="आपकी समस्या Admin को भेज दी गई है।";document.getElementById("supportSubject").value="";document.getElementById("supportMessage").value="";loadMySupportTickets();}catch(e){status.textContent=e.message||"समस्या नहीं भेजी जा सकी।";}
+}
+async function loadMySupportTickets(){if(!token)return;const box=document.getElementById("mySupportTickets");try{const r=await fetch(API+"/support/mine",{headers:{"Authorization":"Bearer "+token}});const d=await r.json();box.innerHTML="<h4>आपकी Support Requests</h4>"+(d.tickets||[]).map(t=>`<div class="comment"><b>${escapeHtml(t.subject)}</b><br>${escapeHtml(t.status==="resolved"?"Resolved":"Pending")}${t.solution?"<br>Solution: "+escapeHtml(t.solution):""}</div>`).join("")||"<p class=muted>अभी कोई request नहीं है।</p>";}catch(_){box.textContent="Requests लोड नहीं हो सकीं।";}}
+function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+async function setupModdAdmin(){const body={username:document.getElementById("adminSetupUsername").value,phone:document.getElementById("adminSetupPhone").value,password:document.getElementById("adminSetupPassword").value,setupSecret:document.getElementById("adminSetupSecret").value};const box=document.getElementById("adminStatus");try{const r=await fetch(API+"/admin/setup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.message);box.textContent="Admin account बन गया। अब Admin Login करें।";}catch(e){box.textContent=e.message||"Admin setup failed";}}
+async function loginModdAdmin(){const box=document.getElementById("adminStatus");try{const r=await fetch(API+"/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:document.getElementById("adminLoginUsername").value,password:document.getElementById("adminLoginPassword").value})});const d=await r.json();if(!r.ok)throw new Error(d.message);adminToken=d.token;sessionStorage.setItem("modd_admin_token",adminToken);document.getElementById("moddAdminPanel").classList.remove("hidden");box.textContent="Admin login successful";loadAdminTickets();loadAdminFeatures();}catch(e){box.textContent=e.message||"Admin login failed";}}
+async function adminFetch(path,options={}){const r=await fetch(API+path,{...options,headers:{"Content-Type":"application/json","Authorization":"Bearer "+adminToken,...(options.headers||{})}});const d=await r.json();if(!r.ok)throw new Error(d.message||"Request failed");return d;}
+async function loadAdminTickets(){if(!adminToken)return;const box=document.getElementById("adminTickets");try{const d=await adminFetch("/admin/support");box.innerHTML=(d.tickets||[]).map(t=>`<div class="comment"><b>${escapeHtml(t.subject)}</b> · ${escapeHtml(t.status)}<br><small>${escapeHtml(t.user?.name||"User")} (${escapeHtml(t.user?.username||"")})</small><p>${escapeHtml(t.message)}</p>${t.status==="open"?`<textarea id="solution-${t._id}" placeholder="Solution लिखें"></textarea><button type="button" onclick="resolveAdminTicket('${t._id}')">✓ Solution / Resolve</button>`:escapeHtml(t.solution||"")}</div>`).join("")||"<p class=muted>कोई Support Request नहीं है।</p>";}catch(e){box.textContent=e.message;}}
+async function resolveAdminTicket(id){try{const solution=document.getElementById("solution-"+id).value;await adminFetch("/admin/support/"+id+"/resolve",{method:"PATCH",body:JSON.stringify({solution})});loadAdminTickets();}catch(e){alert(e.message);}}
+async function addAdminFeature(){try{await adminFetch("/admin/features",{method:"POST",body:JSON.stringify({key:document.getElementById("newFeatureKey").value,label:document.getElementById("newFeatureLabel").value})});document.getElementById("newFeatureKey").value="";document.getElementById("newFeatureLabel").value="";loadAdminFeatures();}catch(e){alert(e.message);}}
+async function loadAdminFeatures(){if(!adminToken)return;const box=document.getElementById("adminFeatures");try{const d=await adminFetch("/admin/features");box.innerHTML=(d.options||[]).map(o=>`<div class="comment">${escapeHtml(o.label)} — ${o.enabled?"Enabled":"Disabled"} <button type="button" onclick="toggleAdminFeature('${o._id}',${!o.enabled})">${o.enabled?"Disable":"Enable"}</button> <button type="button" class="danger" onclick="removeAdminFeature('${o._id}')">Remove</button></div>`).join("")||"<p class=muted>अभी कोई option नहीं है।</p>";}catch(e){box.textContent=e.message;}}
+async function toggleAdminFeature(id,enabled){try{await adminFetch("/admin/features/"+id,{method:"PATCH",body:JSON.stringify({enabled})});loadAdminFeatures();}catch(e){alert(e.message);}}
+async function removeAdminFeature(id){if(!confirm("यह option हटाएँ?"))return;try{await adminFetch("/admin/features/"+id,{method:"DELETE"});loadAdminFeatures();}catch(e){alert(e.message);}}
+function adminLogout(){adminToken="";sessionStorage.removeItem("modd_admin_token");document.getElementById("moddAdminPanel").classList.add("hidden");document.getElementById("adminStatus").textContent="Admin logged out";}
+
 </script>
 </body>
 </html>
